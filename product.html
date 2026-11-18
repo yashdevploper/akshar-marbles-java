@@ -108,9 +108,9 @@
             <label>QUANTITY (SQ. FT.)</label>
             <div class="qty-calc-row">
               <div class="qty-stepper">
-                <button class="qty-btn">−</button>
-                <span class="qty-display">100</span>
-                <button class="qty-btn">＋</button>
+                <button class="qty-btn" type="button" aria-label="Decrease square feet">−</button>
+                <input class="qty-display" type="number" min="1" step="1" inputmode="numeric" value="100" aria-label="Square feet">
+                <button class="qty-btn" type="button" aria-label="Increase square feet">＋</button>
               </div>
               <span class="qty-total-calc">sqft = <b data-product-field="quantityTotal"></b> total</span>
             </div>

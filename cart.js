@@ -1,6 +1,7 @@
 (function () {
   const CART_PREFIX = "akshar_cart_";
   const CHECKOUT_KEY = "akshar_checkout";
+  const GUEST_SESSION_KEY = "akshar_guest_session";
   const GST_RATE = 0.18;
   const FREE_DELIVERY_THRESHOLD = 25000;
 
@@ -14,6 +15,54 @@
     return window.AksharAuth && typeof window.AksharAuth.getUser === "function"
       ? window.AksharAuth.getUser()
       : null;
+  }
+
+  function getGuestSessionToken() {
+    let token = localStorage.getItem(GUEST_SESSION_KEY);
+    if (!token) {
+      token = (window.crypto && typeof window.crypto.randomUUID === "function")
+        ? window.crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(GUEST_SESSION_KEY, token);
+    }
+    return token;
+  }
+
+  function getCartIdentifier() {
+    const user = getUser();
+    const numericCustomerId = Number(user?.id);
+    return Number.isInteger(numericCustomerId) && numericCustomerId > 0
+      ? { customer_id: numericCustomerId }
+      : { session_token: getGuestSessionToken() };
+  }
+
+  async function loadDatabaseCart() {
+    if (!window.apiFetch) {
+      return null;
+    }
+    const identifier = getCartIdentifier();
+    const params = new URLSearchParams(identifier).toString();
+    try {
+      return await window.apiFetch(`/cart?${params}`);
+    } catch (error) {
+      console.error("Unable to load cart from database:", error);
+      return null;
+    }
+  }
+
+  async function addDatabaseCartItem(productId, quantity) {
+    if (!window.apiFetch) {
+      throw new Error("Cart API is unavailable.");
+    }
+    const body = {
+      product_id: Number(productId),
+      quantity: Number(quantity),
+      ...getCartIdentifier()
+    };
+    return await window.apiFetch("/cart/items", {
+      method: "POST",
+      body
+    });
   }
 
   function getStorageKey() {
@@ -53,6 +102,68 @@
       '"': "&quot;",
       "'": "&#39;"
     }[character]));
+  }
+
+  function setCartCount(count) {
+    const cartLinks = document.querySelectorAll(".cart-btn-round");
+    cartLinks.forEach((link) => {
+      link.title = `Cart (${count} ${count === 1 ? "item" : "items"})`;
+      link.setAttribute("aria-label", `Cart, ${count} ${count === 1 ? "item" : "items"}`);
+    });
+  }
+
+  function renderDatabaseCart(cart) {
+    const list = document.getElementById("cart-items-list");
+    if (!list) {
+      return;
+    }
+    if (!cart.length) {
+      list.innerHTML = '<div class="cart-empty-state"><h3>Your cart is empty</h3><p>Add products from our collection to get started.</p></div>';
+      setText("summary-subtotal", formatCurrency(0));
+      setText("summary-discount", "− ₹0");
+      setText("summary-gst", formatCurrency(0));
+      setText("summary-delivery", "FREE");
+      setText("summary-total", formatCurrency(0));
+      setText("cart-page-meta", "0 items · Estimated delivery unavailable");
+      return;
+    }
+
+    const subtotal = cart.reduce((total, item) => total + item.unitPrice * item.quantity, 0);
+    list.innerHTML = cart.map((item) => `
+      <article class="cart-item-card" data-cart-id="${escapeHTML(item.id)}">
+        <div class="cart-item-main">
+          <div class="cart-item-thumb"><img src="${escapeHTML(item.image)}" alt="${escapeHTML(item.name)}"></div>
+          <div class="cart-item-details">
+            <div class="cart-item-category">Product · ID ${escapeHTML(item.id)}</div>
+            <h3 class="cart-item-title">${escapeHTML(item.name)}</h3>
+            <div class="cart-qty-stepper-wrap">
+              <div class="qty-stepper">
+                <span class="qty-display">${item.quantity} sqft</span>
+              </div>
+            </div>
+          </div>
+          <div class="cart-item-right">
+            <div>
+              <div class="cart-item-price-current">${formatCurrency(item.unitPrice * item.quantity)}</div>
+            </div>
+          </div>
+        </div>
+      </article>
+    `).join("");
+
+    const summaryItems = document.getElementById("summary-items-list");
+    if (summaryItems) {
+      summaryItems.innerHTML = cart.map((item) =>
+        `<div class="summary-row"><span>${escapeHTML(item.name)} (${item.quantity} sqft)</span><b>${formatCurrency(item.unitPrice * item.quantity)}</b></div>`
+      ).join("");
+    }
+    const gst = Math.round(subtotal * GST_RATE);
+    setText("cart-page-meta", `${cart.reduce((total, item) => total + item.quantity, 0)} items · Estimated delivery unavailable`);
+    setText("summary-subtotal", formatCurrency(subtotal));
+    setText("summary-discount", "− ₹0");
+    setText("summary-gst", formatCurrency(gst));
+    setText("summary-delivery", "FREE");
+    setText("summary-total", formatCurrency(subtotal + gst));
   }
 
   function getProductId(element) {
@@ -222,6 +333,21 @@
     if (!list) {
       return;
     }
+    loadDatabaseCart().then((databaseCart) => {
+      if (!databaseCart || !Array.isArray(databaseCart.items)) {
+        renderCart();
+        return;
+      }
+      const cart = databaseCart.items.map((item) => ({
+        id: String(item.product_id),
+        quantity: Number(item.quantity),
+        name: item.product_name,
+        unitPrice: Number(item.unit_price),
+        image: item.image_path
+      }));
+      renderDatabaseCart(cart);
+      setCartCount(databaseCart.cartCount || 0);
+    });
 
     list.addEventListener("click", (event) => {
       const card = event.target.closest("[data-cart-id]");
@@ -315,14 +441,73 @@
     }
 
     event.preventDefault();
+    if (addButton.disabled) {
+      return;
+    }
     const productId = getProductId(addButton);
     if (!productId) {
       return;
     }
-    const quantityText = document.querySelector(".product-detail-grid .qty-display")?.textContent || "1";
-    const quantity = Math.max(1, parseInt(quantityText, 10) || 1);
-    addProduct(productId, quantity);
-    window.location.href = addButton.getAttribute("href") || "cart.html";
+    const quantityInput = document.querySelector(".product-detail-grid .qty-display");
+    const quantityText = quantityInput?.value ?? quantityInput?.textContent ?? "1";
+    const quantity = Math.floor(Number(quantityText));
+    if (!Number.isFinite(quantity) || quantity < 1) {
+      console.error("Invalid square feet quantity:", quantityText);
+      addButton.setAttribute("aria-label", "Enter a valid square feet quantity");
+      return;
+    }
+
+    const product = PRODUCTS[productId];
+    const numericProductId = product?.numericId || (/^\d+$/.test(productId) ? Number(productId) : null);
+    if (!numericProductId) {
+      console.error("Product has no numeric product_id:", productId);
+      addButton.setAttribute("aria-label", "Unable to identify this product");
+      return;
+    }
+
+    const originalText = addButton.querySelector("span")
+      ? addButton.innerHTML
+      : addButton.textContent;
+    addButton.disabled = true;
+    addButton.setAttribute("aria-busy", "true");
+    if (addButton.querySelector("span")) {
+      const textNodes = Array.from(addButton.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE);
+      textNodes.forEach((node) => { node.textContent = " Adding..."; });
+    } else {
+      addButton.textContent = "Adding...";
+    }
+
+    addDatabaseCartItem(numericProductId, quantity)
+      .then((result) => {
+        addProduct(productId, quantity);
+        setCartCount(result.cartCount || 0);
+        if (addButton.querySelector("span")) {
+          addButton.innerHTML = originalText.replace(/Add to Cart/, "Added to Cart");
+        } else {
+          addButton.textContent = "Added to Cart";
+        }
+        setTimeout(() => {
+          addButton.disabled = false;
+          addButton.removeAttribute("aria-busy");
+          if (addButton.querySelector("span")) {
+            addButton.innerHTML = originalText;
+          } else {
+            addButton.textContent = "Add to Cart";
+          }
+          window.location.href = addButton.getAttribute("href") || "cart.html";
+        }, 450);
+      })
+      .catch((error) => {
+        console.error("Add to cart failed:", error);
+        addButton.disabled = false;
+        addButton.removeAttribute("aria-busy");
+        addButton.setAttribute("aria-label", error.message || "Unable to add item to cart");
+        if (addButton.querySelector("span")) {
+          addButton.innerHTML = originalText;
+        } else {
+          addButton.textContent = "Add to Cart";
+        }
+      });
   });
 
   setupCartPage();

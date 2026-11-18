@@ -305,7 +305,11 @@
     const startingQuantity = product.defaultQuantity || product.minimumOrder || 1;
     const quantityDisplay = document.querySelector(".quantity-order-section .qty-display");
     if (quantityDisplay) {
-      quantityDisplay.textContent = String(startingQuantity);
+      if (typeof quantityDisplay.value !== "undefined") {
+        quantityDisplay.value = String(startingQuantity);
+      } else {
+        quantityDisplay.textContent = String(startingQuantity);
+      }
     }
     setField("quantityTotal", formatCurrency(product.price * startingQuantity));
     setField("minimumOrder", product.minimumOrder ? `Minimum order: ${product.minimumOrder} sqft · Sold in full slabs` : "");
@@ -346,19 +350,56 @@
       });
     });
 
+    const updateQuantity = (next) => {
+      if (!quantityDisplay || !product) {
+        return;
+      }
+      const minimum = 1;
+      const maximum = 100000;
+      const parsed = Number.parseInt(String(next), 10);
+      const safeQuantity = Number.isFinite(parsed)
+        ? Math.min(maximum, Math.max(minimum, parsed))
+        : minimum;
+      if (typeof quantityDisplay.value !== "undefined") {
+        quantityDisplay.value = String(safeQuantity);
+      } else {
+        quantityDisplay.textContent = String(safeQuantity);
+      }
+      if (quantityTotal) {
+        quantityTotal.textContent = formatCurrency(product.price * safeQuantity);
+      }
+    };
+
+    quantityDisplay?.addEventListener("input", () => {
+      if (!quantityDisplay.value) {
+        if (quantityTotal) {
+          quantityTotal.textContent = formatCurrency(0);
+        }
+        return;
+      }
+      const parsed = Number(quantityDisplay.value);
+      if (!Number.isFinite(parsed) || parsed < 1) {
+        return;
+      }
+      updateQuantity(Math.floor(parsed));
+    });
+
+    quantityDisplay?.addEventListener("change", () => {
+      updateQuantity(quantityDisplay.value);
+    });
+
     document.querySelectorAll(".quantity-order-section .qty-btn").forEach((button, index) => {
       button.addEventListener("click", () => {
-        if (!quantityDisplay || !product || product.stock < minimumOrder) {
+        if (!quantityDisplay || !product) {
           return;
         }
-        const current = parseInt(quantityDisplay.textContent, 10) || minimumOrder;
+        const current = typeof quantityDisplay.value !== "undefined"
+          ? (Number.parseInt(quantityDisplay.value, 10) || minimumOrder)
+          : (parseInt(quantityDisplay.textContent, 10) || minimumOrder);
         const next = index === 0
           ? Math.max(minimumOrder, current - 1)
-          : Math.min(product.stock, current + 1);
-        quantityDisplay.textContent = String(next);
-        if (quantityTotal) {
-          quantityTotal.textContent = formatCurrency(product.price * next);
-        }
+          : Math.min(100000, current + 1);
+        updateQuantity(next);
       });
     });
   }

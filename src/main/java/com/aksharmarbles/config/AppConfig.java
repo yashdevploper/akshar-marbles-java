@@ -74,7 +74,7 @@ public final class AppConfig {
                             parsedDbPass = java.net.URLDecoder.decode(parts[1], java.nio.charset.StandardCharsets.UTF_8);
                         }
                     }
-                    parsedDbUrl = String.format("jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Kolkata&useSSL=true&allowPublicKeyRetrieval=true",
+                    parsedDbUrl = String.format("jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Kolkata&useSSL=true&sslMode=VERIFY_IDENTITY",
                             host, port, path);
                     logger.info("Parsed cloud database URI into JDBC URL for host: {}:{}", host, port);
                 } catch (Exception e) {
