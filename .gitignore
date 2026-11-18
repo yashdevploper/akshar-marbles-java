@@ -1,9 +1,11 @@
 # Maven build output
 target/
+backend/target/
 
 # Sensitive configuration files
 src/main/resources/application.properties
 application.properties
+backend/src/main/resources/application.properties
 
 # IDE & Editor settings
 .idea/

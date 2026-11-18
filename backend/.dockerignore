@@ -1,0 +1,11 @@
+.git
+.gitignore
+.gemini
+target
+*.log
+scripts
+.idea
+*.iml
+scratch
+schema_akshar_marbles.sql
+RENDER_DEPLOYMENT.md

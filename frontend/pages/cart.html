@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your Cart | Akshar Marbles</title>
+  <link rel="stylesheet" href="../../assets/css/base/common.css">
+  <link rel="stylesheet" href="../../assets/css/pages/cart.css">
+</head>
+<body>
+
+  <!-- Centralized Storefront Navigation Bar Container -->
+  <div id="site-navbar"></div>
+
+  <!-- Breadcrumbs Bar -->
+  <nav class="breadcrumbs-bar">
+    <a href="../index.html">Home</a>
+    <span>›</span>
+    <a href="browse.html">Browse</a>
+    <span>›</span>
+    <span class="active-crumb">Shopping Cart</span>
+  </nav>
+
+  <!-- Cart Content Container -->
+  <main class="store-container">
+    <div class="store-page-header">
+      <h1>Your Cart</h1>
+      <p id="cart-page-meta">Loading cart...</p>
+    </div>
+
+    <div class="cart-layout-grid">
+      
+      <!-- Left Column: Items & Promo Code -->
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        
+        <div class="cart-items-list" id="cart-items-list">
+          
+          <!-- Item 1: Statuario White -->
+          <article class="cart-item-card">
+            <div class="cart-item-main">
+              <div class="cart-item-thumb">
+                <img src="../assets/front-images/Statuario white Italian marble slab with dramatic grey veining, polished surface, luxury material ph.png" alt="Statuario White">
+              </div>
+              <div class="cart-item-details">
+                <div class="cart-item-category">Italian Marble · SKU-0021</div>
+                <h3 class="cart-item-title">Statuario White</h3>
+                <div class="cart-item-spec">Polished Finish · 24"×24" · Carrara, Italy</div>
+                <div class="cart-qty-stepper-wrap">
+                  <div class="qty-stepper">
+                    <button class="qty-btn">−</button>
+                    <span class="qty-display">100 sqft</span>
+                    <button class="qty-btn">＋</button>
+                  </div>
+                  <span class="qty-conversion-note">= 4 tiles per sqft</span>
+                </div>
+              </div>
+              <div class="cart-item-right">
+                <button class="btn-remove-item" title="Remove item">🗑</button>
+                <div>
+                  <div class="cart-item-price-current">₹45,000</div>
+                  <div class="cart-item-price-savings">
+                    <strike>₹50,000</strike> · <span>Save ₹5,000</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="cart-item-notice-banner success">
+              <span>✔</span> In stock · Ships within 2–3 business days from Mumbai warehouse
+            </div>
+          </article>
+
+          <!-- Item 2: Calacatta Gold -->
+          <article class="cart-item-card">
+            <div class="cart-item-main">
+              <div class="cart-item-thumb">
+                <img src="../assets/front-images/Calacatta Gold Italian marble with golden yellow veins on white background, luxury interior stone, p.png" alt="Calacatta Gold">
+              </div>
+              <div class="cart-item-details">
+                <div class="cart-item-category">Italian Marble · SKU-0057</div>
+                <h3 class="cart-item-title">Calacatta Gold</h3>
+                <div class="cart-item-spec">Polished Finish · 24"×48" · Carrara, Italy</div>
+                <div class="cart-qty-stepper-wrap">
+                  <div class="qty-stepper">
+                    <button class="qty-btn">−</button>
+                    <span class="qty-display">80 sqft</span>
+                    <button class="qty-btn">＋</button>
+                  </div>
+                </div>
+              </div>
+              <div class="cart-item-right">
+                <button class="btn-remove-item" title="Remove item">🗑</button>
+                <div>
+                  <div class="cart-item-price-current">₹72,000</div>
+                  <div class="cart-item-price-savings">
+                    <strike>₹80,000</strike> · <span>Save ₹8,000</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="cart-item-notice-banner success">
+              <span>✔</span> In stock · Ships within 2–3 business days
+            </div>
+          </article>
+
+          <!-- Item 3: Nero Marquina -->
+          <article class="cart-item-card">
+            <div class="cart-item-main">
+              <div class="cart-item-thumb">
+                <img src="../assets/front-images/black Nero Marquina Spanish marble texture with white veins, luxury stone surface, premium quality.png" alt="Nero Marquina">
+              </div>
+              <div class="cart-item-details">
+                <div class="cart-item-category">Spanish Marble · SKU-0034</div>
+                <h3 class="cart-item-title">Nero Marquina</h3>
+                <div class="cart-item-spec">Honed Finish · 24"×24" · Spain</div>
+                <div class="cart-qty-stepper-wrap">
+                  <div class="qty-stepper">
+                    <button class="qty-btn">−</button>
+                    <span class="qty-display">60 sqft</span>
+                    <button class="qty-btn">＋</button>
+                  </div>
+                </div>
+              </div>
+              <div class="cart-item-right">
+                <button class="btn-remove-item" title="Remove item">🗑</button>
+                <div>
+                  <div class="cart-item-price-current">₹36,000</div>
+                  <div class="cart-item-price-savings">
+                    <strike>₹40,800</strike> · <span>Save ₹4,800</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="cart-item-notice-banner warning">
+              <span>⚠️</span> Low stock — only 380 sqft remaining. Order soon!
+            </div>
+          </article>
+
+        </div>
+
+        <!-- Promo Code Section -->
+        <article class="promo-code-card">
+          <h3>Have a Promo Code?</h3>
+          <div class="promo-input-row">
+            <input type="text" class="promo-text-input" id="promo-code-input" placeholder="Enter promo code (e.g. AKSHAR20)" autocomplete="off" aria-describedby="promo-status">
+            <button class="promo-apply-btn" type="button">Apply</button>
+          </div>
+          <div class="promo-status-text" id="promo-status" role="status" aria-live="polite"></div>
+          <div class="promo-hint-text">
+            <span>🏷</span> Try <b>AKSHAR20</b> for 20% off your order
+          </div>
+        </article>
+
+      </div>
+
+      <!-- Right Column: Order Summary & Trust Badges -->
+      <div>
+        
+        <aside class="order-summary-card">
+          <h2>Order Summary</h2>
+
+          <div class="summary-items-list" id="summary-items-list">
+            <div class="summary-row">
+              <span>Statuario White (100 sqft)</span>
+              <b>₹45,000</b>
+            </div>
+            <div class="summary-row">
+              <span>Calacatta Gold (80 sqft)</span>
+              <b>₹72,000</b>
+            </div>
+            <div class="summary-row">
+              <span>Nero Marquina (60 sqft)</span>
+              <b>₹36,000</b>
+            </div>
+          </div>
+
+          <div class="summary-divider"></div>
+
+          <div class="summary-items-list">
+            <div class="summary-row">
+              <span>Subtotal</span>
+              <b id="summary-subtotal">₹0</b>
+            </div>
+            <div class="summary-row savings">
+              <span>Discount (Savings)</span>
+              <b id="summary-discount">− ₹0</b>
+            </div>
+            <div class="summary-row">
+              <span>GST (18%)</span>
+              <b id="summary-gst">₹0</b>
+            </div>
+            <div class="summary-row free-delivery">
+              <span>Delivery</span>
+              <span id="summary-delivery">FREE</span>
+            </div>
+          </div>
+
+          <div class="summary-divider"></div>
+
+          <div class="summary-total-row">
+            <div class="summary-total-label">Total Payable</div>
+            <div class="summary-total-amount">
+              <h3 id="summary-total">₹0</h3>
+              <small>Incl. GST</small>
+            </div>
+          </div>
+
+          <div class="summary-delivery-box">
+            <div class="delivery-box-title">
+              <span>🚚</span> <span id="delivery-estimate">Estimated delivery unavailable</span>
+            </div>
+            <div class="delivery-box-address" id="delivery-address">
+              Delivery address not saved
+            </div>
+          </div>
+
+          <a href="orders.html" class="btn-checkout-primary" id="checkout-button">
+            <span>🔒</span> Proceed to Checkout
+          </a>
+          <a href="browse.html" class="btn-continue-shopping">
+            <span>←</span> Continue Shopping
+          </a>
+
+          <div class="accepted-payments-wrap">
+            <div class="accepted-payments-label">ACCEPTED PAYMENTS</div>
+            <div class="payment-badges-row">
+              <span class="pay-badge">💳 Visa</span>
+              <span class="pay-badge">💳 Mastercard</span>
+              <span class="pay-badge">UPI</span>
+              <span class="pay-badge">EMI</span>
+              <span class="pay-badge">Net Banking</span>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Trust Badges -->
+        <div class="trust-badges-list">
+          <div class="trust-badge-item">
+            <span style="font-size:16px;">🛡️</span>
+            <span>100% Secure Checkout — SSL Encrypted</span>
+          </div>
+          <div class="trust-badge-item">
+            <span style="font-size:16px;">🔄</span>
+            <span>Easy 7-day returns on damaged items</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <script src="../components/auth.js"></script>
+  <script src="../components/navbar.js"></script>
+  <script src="../../assets/js/pages/products.js"></script>
+  <script src="../../assets/js/pages/cart.js"></script>
+</body>
+</html>

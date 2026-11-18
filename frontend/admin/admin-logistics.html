@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Logistics &amp; Delivery | Akshar Marbles</title>
+  <link rel="stylesheet" href="../../assets/css/admin/admin-pages.css">
+</head>
+<body>
+
+  <!-- Sidebar Navigation -->
+  <aside></aside>
+
+  <!-- Admin Main -->
+  <main class="admin-main">
+    <header class="admin-header">
+      <div class="admin-header-title">
+        <h1>Logistics &amp; Delivery</h1>
+        <small>289 shipments in transit · 98% on-time rate</small>
+      </div>
+    </header>
+
+    <section class="admin-content">
+      <!-- 4 Top Metric Cards -->
+      <div class="metrics-row">
+        <div class="metric-card">
+          <div class="metric-icon-box">📦</div>
+          <div class="metric-info">
+            <h3>1,284</h3>
+            <span>Total Orders</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon-box gold">🚚</div>
+          <div class="metric-info">
+            <h3>289</h3>
+            <span>In Transit</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon-box">✓</div>
+          <div class="metric-info">
+            <h3>812</h3>
+            <span>Delivered</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon-box red">⚠️</div>
+          <div class="metric-info">
+            <h3>12</h3>
+            <span>Delayed</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Shipments Table Card -->
+      <article class="content-card">
+        <div class="tabs-header-wrap">
+          <div class="filter-tabs-list">
+            <a href="#" class="filter-tab active">All Orders</a>
+            <a href="#" class="filter-tab">Processing</a>
+            <a href="#" class="filter-tab">In Transit</a>
+            <a href="#" class="filter-tab">Delivered</a>
+            <a href="#" class="filter-tab tab-danger">Delayed</a>
+          </div>
+          <div class="search-input-wrap" style="width:220px; flex:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" class="search-input" placeholder="Search orders..." style="padding:6px 12px 6px 32px; font-size:12px; border-radius:8px;">
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ORDER</th>
+                <th>CUSTOMER</th>
+                <th>ITEMS</th>
+                <th>COURIER</th>
+                <th>TRACKING NO.</th>
+                <th>ETA</th>
+                <th>STATUS</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div>
+                    <b>#ORD-7821</b>
+                    <small style="color:var(--m)">18 Jun 2025</small>
+                  </div>
+                </td>
+                <td>
+                  <a href="admin-customers.html" class="user-cell" style="text-decoration:none; color:inherit;">
+                    <img src="../assets/avatar-ananya.svg" alt="Ananya Sharma" style="width:30px; height:30px;">
+                    <span style="font-weight:600; text-decoration:underline;">Ananya Sharma</span>
+                  </a>
+                </td>
+                <td>Statuario White · 120 sqft</td>
+                <td>BlueDart</td>
+                <td style="font-size:12px; color:var(--m);">BD-928374651</td>
+                <td>20 Jun 2025</td>
+                <td><span class="badge badge-green">Delivered</span></td>
+                <td><button class="btn btn-outline btn-sm">Track</button></td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div>
+                    <b>#ORD-7820</b>
+                    <small style="color:var(--m)">17 Jun 2025</small>
+                  </div>
+                </td>
+                <td>
+                  <div class="user-cell">
+                    <img src="../assets/avatar-rohan.svg" alt="Rohan Gupta" style="width:30px; height:30px;">
+                    <span style="font-weight:600;">Rohan Gupta</span>
+                  </div>
+                </td>
+                <td>Nero Marquina · 80 sqft</td>
+                <td>Delhivery</td>
+                <td style="font-size:12px; color:var(--m);">DL-716283940</td>
+                <td>21 Jun 2025</td>
+                <td><span class="badge badge-gold">In Transit</span></td>
+                <td><button class="btn btn-outline btn-sm">Track</button></td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div>
+                    <b>#ORD-7819</b>
+                    <small style="color:var(--m)">17 Jun 2025</small>
+                  </div>
+                </td>
+                <td>
+                  <div class="user-cell">
+                    <img src="../assets/avatar-priya.svg" alt="Priya Nair" style="width:30px; height:30px;">
+                    <span style="font-weight:600;">Priya Nair</span>
+                  </div>
+                </td>
+                <td>Calacatta Gold · 200 sqft</td>
+                <td>DTDC</td>
+                <td style="font-size:12px; color:var(--m);">DT-504938271</td>
+                <td>22 Jun 2025</td>
+                <td><span class="badge badge-gray">Processing</span></td>
+                <td><button class="btn btn-outline btn-sm">Track</button></td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div>
+                    <b>#ORD-7815</b>
+                    <small style="color:var(--m)">15 Jun 2025</small>
+                  </div>
+                </td>
+                <td>
+                  <div class="user-cell">
+                    <img src="../assets/avatar-anil.svg" alt="Anil Kumar" style="width:30px; height:30px;">
+                    <span style="font-weight:600;">Anil Kumar</span>
+                  </div>
+                </td>
+                <td>Onyx Green · 50 sqft</td>
+                <td>Ekart</td>
+                <td style="font-size:12px; color:var(--m);">EK-394827160</td>
+                <td><span style="color:var(--red); font-weight:600;">Was: 18 Jun</span></td>
+                <td><span class="badge badge-red">Delayed</span></td>
+                <td><button class="btn btn-outline btn-sm">Track</button></td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div>
+                    <b>#ORD-7818</b>
+                    <small style="color:var(--m)">16 Jun 2025</small>
+                  </div>
+                </td>
+                <td>
+                  <div class="user-cell">
+                    <img src="../assets/avatar-vikram.svg" alt="Vikram Joshi" style="width:30px; height:30px;">
+                    <span style="font-weight:600;">Vikram Joshi</span>
+                  </div>
+                </td>
+                <td>Emperador Dark · 60 sqft</td>
+                <td>BlueDart</td>
+                <td style="font-size:12px; color:var(--m);">BD-837465209</td>
+                <td>19 Jun 2025</td>
+                <td><span class="badge badge-green">Delivered</span></td>
+                <td><button class="btn btn-outline btn-sm">Track</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card-footer-pagination">
+          <span>Showing 1–5 of 1,284 orders</span>
+          <div class="pagination-controls">
+            <button class="page-arrow">‹</button>
+            <a href="#" class="page-num active">1</a>
+            <a href="#" class="page-num">2</a>
+            <a href="#" class="page-num">3</a>
+            <button class="page-arrow">›</button>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script src="../components/auth.js"></script>
+  <script src="../components/admin-nav.js"></script>
+</body>
+</html>
