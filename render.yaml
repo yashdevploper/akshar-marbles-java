@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: akshar-marbles
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENVIRONMENT
+        value: production
+      - key: HIKARI_MAXIMUMPOOLSIZE
+        value: "5"
+      - key: HIBERNATE_HBM2DDL_AUTO
+        value: validate
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false

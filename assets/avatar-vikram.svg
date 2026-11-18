@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg-vikram" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3c4642"/>
+      <stop offset="100%" stop-color="#1f2422"/>
+    </linearGradient>
+    <linearGradient id="skin-vikram" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#eec2a0"/>
+      <stop offset="100%" stop-color="#cf9d79"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" fill="url(#bg-vikram)"/>
+  <!-- Hair back -->
+  <circle cx="50" cy="42" r="22" fill="#151515"/>
+  <!-- Body / Jacket -->
+  <path d="M12,100 C12,74 34,70 42,68 L42,58 L58,58 L58,68 C66,70 88,74 88,100 Z" fill="#1b1c1e"/>
+  <!-- Neck -->
+  <path d="M43,50 L57,50 L56,62 L44,62 Z" fill="url(#skin-vikram)"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="45" rx="16" ry="19" fill="url(#skin-vikram)"/>
+  <!-- Hair front style -->
+  <path d="M34,38 C34,24 44,20 52,20 C60,20 66,24 66,36 C62,30 40,30 34,38 Z" fill="#151515"/>
+  <path d="M48,22 Q54,16 62,24 Q54,22 48,22" fill="#151515"/>
+  <!-- Eyes -->
+  <circle cx="43" cy="44" r="1.8" fill="#151515"/>
+  <circle cx="57" cy="44" r="1.8" fill="#151515"/>
+  <path d="M40,40 L46,39" stroke="#151515" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M54,39 L60,40" stroke="#151515" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M50,44 L49,50 L52,50" stroke="#a67350" stroke-width="1.2" fill="none"/>
+  <path d="M46,55 Q50,58 54,55" stroke="#7e4630" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+</svg>

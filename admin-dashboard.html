@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Dashboard — Akshar Marbles</title>
+    <link rel="stylesheet" href="dashboard.css" />
+    <link rel="stylesheet" href="admin-pages.css" />
+  </head>
+  <body>
+    <!-- Sidebar Navigation -->
+    <aside></aside>
+
+    <!-- Main Content Area -->
+    <main>
+      <header>
+        <div>
+          <h1>Dashboard</h1>
+          <small>Wednesday, 18 June 2025 · Operations Live</small>
+        </div>
+        <img
+          src="assets/avatar-rajan.svg"
+          alt="Rajan Mehta"
+          style="
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+          "
+        />
+      </header>
+
+      <section>
+        <!-- Stat Cards with Contextual Links -->
+        <div class="stats">
+          <article
+            class="kpi-card"
+            style="cursor: pointer"
+            onclick="window.location.href = 'admin-logistics.html'"
+            title="View Revenue & Orders in Logistics"
+          >
+            <div class="kpi-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M4 19V5M4 19h16M8 16v-4M12 16V8M16 16v-6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
+            <em>+18.4%</em>
+            <h2>₹42.8L</h2>
+            <span>Total Revenue</span>
+            <small>vs ₹36.1L last month →</small>
+          </article>
+          <article
+            class="kpi-card"
+            style="cursor: pointer"
+            onclick="window.location.href = 'admin-logistics.html'"
+            title="View All Orders"
+          >
+            <div class="kpi-icon gold">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M5 6.5h14v12H5zM8 4.5h8M8 10h8M8 14h5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+            <em>+7.2%</em>
+            <h2>1,284</h2>
+            <span>Total Orders</span>
+            <small>342 this week →</small>
+          </article>
+          <article
+            class="kpi-card"
+            style="cursor: pointer"
+            onclick="window.location.href = 'admin-inventory.html'"
+            title="Manage Inventory"
+          >
+            <div class="kpi-icon dark">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="m4 7 8-4 8 4-8 4-8-4ZM4 12l8 4 8-4M4 17l8 4 8-4M12 11v5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+            <em class="bad">-3.1%</em>
+            <h2>2,417</h2>
+            <span>Inventory Units</span>
+            <small>18 low stock alerts →</small>
+          </article>
+          <article
+            class="kpi-card"
+            style="cursor: pointer"
+            onclick="window.location.href = 'admin-customers.html'"
+            title="Manage Customers"
+          >
+            <div class="kpi-icon beige">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle
+                  cx="9"
+                  cy="8"
+                  r="3"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                />
+                <path
+                  d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.8M16 14a5 5 0 0 1 4.5 5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
+            <em>+12%</em>
+            <h2>8,342</h2>
+            <span>Active Customers</span>
+            <small>+214 this month →</small>
+          </article>
+        </div>
+
+        <!-- Overview Charts -->
+        <div class="grid" id="reports">
+          <article class="chart">
+            <h3>Revenue Overview</h3>
+            <small>Monthly performance for 2025</small>
+            <button>2025</button>
+            <div class="graph">
+              <svg viewBox="0 0 640 200" preserveAspectRatio="none">
+                <line
+                  x1="0"
+                  y1="45"
+                  x2="640"
+                  y2="45"
+                  stroke="#ddd6c9"
+                  stroke-width="1"
+                />
+                <line
+                  x1="0"
+                  y1="90"
+                  x2="640"
+                  y2="90"
+                  stroke="#ddd6c9"
+                  stroke-width="1"
+                />
+                <line
+                  x1="0"
+                  y1="135"
+                  x2="640"
+                  y2="135"
+                  stroke="#ddd6c9"
+                  stroke-width="1"
+                />
+                <path
+                  d="M0 140 58 125 115 132 174 110 231 99 290 79 348 91 406 70 465 56 522 76 580 51 640 30V200H0Z"
+                  fill="#164a38"
+                  opacity=".08"
+                />
+                <path
+                  d="M0 140 58 125 115 132 174 110 231 99 290 79 348 91 406 70 465 56 522 76 580 51 640 30"
+                  fill="none"
+                  stroke="#164a38"
+                  stroke-width="3"
+                />
+              </svg>
+            </div>
+          </article>
+          <article class="status">
+            <h3>Order Status</h3>
+            <small>Current distribution</small>
+            <div class="donut">
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="44"
+                  fill="none"
+                  stroke="#eaf2ee"
+                  stroke-width="14"
+                />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="44"
+                  fill="none"
+                  stroke="#164a38"
+                  stroke-width="14"
+                  stroke-dasharray="175 276"
+                  transform="rotate(-90 60 60)"
+                />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="44"
+                  fill="none"
+                  stroke="#c5a46d"
+                  stroke-width="14"
+                  stroke-dasharray="62 276"
+                  stroke-dashoffset="-175"
+                  transform="rotate(-90 60 60)"
+                />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="44"
+                  fill="none"
+                  stroke="#eee9de"
+                  stroke-width="14"
+                  stroke-dasharray="29 276"
+                  stroke-dashoffset="-237"
+                  transform="rotate(-90 60 60)"
+                />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="44"
+                  fill="none"
+                  stroke="#b5483e"
+                  stroke-width="14"
+                  stroke-dasharray="13 276"
+                  stroke-dashoffset="-266"
+                  transform="rotate(-90 60 60)"
+                />
+              </svg>
+              <strong>1,284<small>Total orders</small></strong>
+            </div>
+            <div class="status-legend">
+              <p>
+                <span><i class="delivered"></i>Delivered</span><b>812</b>
+              </p>
+              <p>
+                <span><i class="transit"></i>In Transit</span><b>289</b>
+              </p>
+              <p>
+                <span><i class="processing"></i>Processing</span><b>134</b>
+              </p>
+              <p>
+                <span><i class="cancelled"></i>Cancelled</span><b>49</b>
+              </p>
+            </div>
+          </article>
+        </div>
+
+        <!-- Bottom Grid: Recent Orders & Top Products -->
+        <div class="grid bottom">
+          <article class="orders">
+            <h3>
+              Recent Orders
+              <a href="admin-logistics.html"
+                >View All Logistics <span aria-hidden="true">→</span></a
+              >
+            </h3>
+            <div
+              style="cursor: pointer"
+              onclick="window.location.href = 'admin-logistics.html'"
+            >
+              <i class="order-icon"
+                ><svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M5 6.5h14v12H5zM8 4.5h8M8 10h8M8 14h5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                  /></svg></i
+              ><span
+                ><b>#ORD-7821</b
+                ><small>Ananya Sharma · Statuario White · 120 sqft</small></span
+              >
+              <strong>₹54,000<em>Delivered</em></strong>
+            </div>
+            <div
+              style="cursor: pointer"
+              onclick="window.location.href = 'admin-logistics.html'"
+            >
+              <i class="order-icon"
+                ><svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M5 6.5h14v12H5zM8 4.5h8M8 10h8M8 14h5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                  /></svg></i
+              ><span
+                ><b>#ORD-7820</b
+                ><small>Rohan Gupta · Nero Marquina · 80 sqft</small></span
+              >
+              <strong>₹72,000<em class="amber">In Transit</em></strong>
+            </div>
+            <div
+              style="cursor: pointer"
+              onclick="window.location.href = 'admin-logistics.html'"
+            >
+              <i class="order-icon"
+                ><svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M5 6.5h14v12H5zM8 4.5h8M8 10h8M8 14h5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                  /></svg></i
+              ><span
+                ><b>#ORD-7819</b
+                ><small>Priya Nair · Calacatta Gold · 200 sqft</small></span
+              >
+              <strong>₹1,80,000<em class="gray">Processing</em></strong>
+            </div>
+            <div
+              style="cursor: pointer"
+              onclick="window.location.href = 'admin-logistics.html'"
+            >
+              <i class="order-icon"
+                ><svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M5 6.5h14v12H5zM8 4.5h8M8 10h8M8 14h5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                  /></svg></i
+              ><span
+                ><b>#ORD-7818</b
+                ><small>Vikram Joshi · Emperador Dark · 60 sqft</small></span
+              >
+              <strong>₹39,600<em>Delivered</em></strong>
+            </div>
+          </article>
+
+          <article class="top">
+            <h3>Top Products</h3>
+            <small>By revenue this month</small>
+            <p>
+              <span>Statuario White</span><b>₹8.4L</b><i><span></span></i>
+            </p>
+            <p>
+              <span>Calacatta Gold</span><b>₹7.1L</b><i><span></span></i>
+            </p>
+            <p>
+              <span>Nero Marquina</span><b>₹5.9L</b><i><span></span></i>
+            </p>
+            <p>
+              <span>Emperador Dark</span><b>₹4.2L</b><i><span></span></i>
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script src="Components/auth.js"></script>
+    <script src="Components/admin-nav.js"></script>
+  </body>
+</html>

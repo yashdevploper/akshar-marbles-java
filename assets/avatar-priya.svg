@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg-priya" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#465450"/>
+      <stop offset="100%" stop-color="#24302c"/>
+    </linearGradient>
+    <linearGradient id="skin-priya" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fedcc0"/>
+      <stop offset="100%" stop-color="#e9b794"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" fill="url(#bg-priya)"/>
+  <!-- Long Hair back -->
+  <path d="M22,40 C22,18 78,18 78,40 C78,65 76,85 70,100 L30,100 C24,85 22,65 22,40 Z" fill="#181514"/>
+  <!-- Body -->
+  <path d="M16,100 C16,78 35,76 44,72 L44,60 L56,60 L56,72 C65,76 84,78 84,100 Z" fill="#6d394b"/>
+  <!-- Neck -->
+  <path d="M43,52 L57,52 L55,65 L45,65 Z" fill="url(#skin-priya)"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="46" rx="15" ry="19" fill="url(#skin-priya)"/>
+  <!-- Hair front waves -->
+  <path d="M26,38 C28,24 42,20 50,22 C58,20 72,24 74,38 C74,52 68,64 64,65 C60,56 60,35 56,33 C50,38 45,38 42,33 C38,35 38,56 34,65 C30,64 26,52 26,38 Z" fill="#181514"/>
+  <!-- Features -->
+  <ellipse cx="44" cy="44" rx="2" ry="1.4" fill="#201a18"/>
+  <ellipse cx="56" cy="44" rx="2" ry="1.4" fill="#201a18"/>
+  <path d="M41,40 Q44,38 47,40" stroke="#181514" stroke-width="1.3" fill="none"/>
+  <path d="M53,40 Q56,38 59,40" stroke="#181514" stroke-width="1.3" fill="none"/>
+  <path d="M50,44 L49,50 L52,50" stroke="#c28a67" stroke-width="1.2" fill="none"/>
+  <path d="M46,55 Q50,59 54,55" stroke="#ba4f5c" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+</svg>
