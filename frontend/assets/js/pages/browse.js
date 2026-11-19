@@ -995,7 +995,6 @@
 
     // Mobile Filter Drawer Toggle
     const filterToggleBtn = document.querySelector('.btn-filter-toggle');
-    const sidebar = document.querySelector('.filters-sidebar');
     let backdrop = document.querySelector('.filters-backdrop');
 
     if (!backdrop) {
