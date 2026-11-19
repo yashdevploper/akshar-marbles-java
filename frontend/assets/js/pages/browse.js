@@ -1003,7 +1003,7 @@
       document.body.appendChild(backdrop);
     }
 
-    const mobileFilterQuery = window.matchMedia('(max-width: 768px)');
+    const mobileFilterQuery = window.matchMedia('(max-width: 820px)');
     let previousBodyOverflow = '';
 
     function openMobileFilters() {
