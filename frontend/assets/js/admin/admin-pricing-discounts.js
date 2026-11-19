@@ -205,7 +205,7 @@
           body: payload
         });
 
-        if (result && result.success) {
+        if (result && result.success !== false) {
           product.mrp = mrp;
           product.salePrice = salePrice;
           showButtonFeedback(button, "Saved ✔", "success");
@@ -250,8 +250,9 @@
     // Try dedicated admin pricing endpoint first
     try {
       const res = await window.apiFetch("/admin/pricing");
-      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-        productsList = res.data;
+      const list = Array.isArray(res) ? res : (res?.data || []);
+      if (Array.isArray(list) && list.length > 0) {
+        productsList = list;
         renderRows();
         return;
       }

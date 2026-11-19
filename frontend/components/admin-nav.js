@@ -97,7 +97,7 @@
         </a>
       </div>
       <div class="profile interactive-profile" title="Account Menu">
-        <img src="assets/avatar-rajan.svg" alt="Rajan Mehta" style="width:34px;height:34px;border-radius:50%;object-fit:cover;">
+        <img src="${window.location.pathname.toLowerCase().includes('/admin/') ? '../assets/avatar-rajan.svg' : 'assets/avatar-rajan.svg'}" alt="Rajan Mehta" style="width:34px;height:34px;border-radius:50%;object-fit:cover;">
         <span><b>Rajan Mehta</b><small>Super Admin</small></span>
         <span class="more-dots">${navIcon('more')}</span>
       </div>
