@@ -630,12 +630,21 @@
   }
 
   function normalizeImagePath(path) {
-    if (!path) return "../assets/front-images/placeholder.png";
+    const isPagesSubdir = window.location.pathname.toLowerCase().includes("/pages/");
+    const fallback = isPagesSubdir
+      ? "../assets/front-images/Statuario white Italian marble slab with dramatic grey veining, polished surface, luxury material ph.png"
+      : "assets/front-images/Statuario white Italian marble slab with dramatic grey veining, polished surface, luxury material ph.png";
+    if (!path) return fallback;
+
     let p = String(path).replace(/^[\\/]+/, "");
+    // Ensure case-insensitive front-images directory matches Linux filesystem
+    p = p.replace(/^assets[\\/]front-images[\\/]/i, "assets/front-images/")
+         .replace(/^front-images[\\/]/i, "front-images/");
+
     if (!p.toLowerCase().startsWith("assets/")) {
       p = `assets/${p}`;
     }
-    return `../${p}`;
+    return isPagesSubdir ? `../${p}` : p;
   }
 
   function refreshDatabaseCart() {

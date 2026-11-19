@@ -21,6 +21,8 @@ COPY backend/src ./src
 # Copy frontend assets and pages into the WAR build directory
 COPY frontend/ ./frontend/
 COPY frontend/assets ./assets
+RUN cp -r ./assets/front-images ./assets/Front-images 2>/dev/null || true
+RUN cp -r ./frontend/assets/front-images ./frontend/assets/Front-images 2>/dev/null || true
 COPY frontend/components ./Components
 COPY frontend/components ./components
 COPY frontend/index.html ./home.html
