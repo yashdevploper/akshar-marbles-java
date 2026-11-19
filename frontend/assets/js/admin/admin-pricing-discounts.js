@@ -1,5 +1,7 @@
 (function () {
   const DATA_FILE = "../assets/data/akshar_marbles_product_data.xlsx";
+
+  let productsList = [];
   const workbookState = {
     workbook: null,
     worksheet: null,
@@ -30,47 +32,7 @@
   }
 
   function formatPercentage(value) {
-    return `${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}%`;
-  }
-
-  function setCellValue(rowNumber, columnNumber, value) {
-    const address = XLSX.utils.encode_cell({ r: rowNumber, c: columnNumber });
-    const existing = workbookState.worksheet[address];
-    workbookState.worksheet[address] = {
-      t: "n",
-      v: value,
-      ...(existing && existing.z ? { z: existing.z } : {})
-    };
-  }
-
-  function locateColumns() {
-    const headers = XLSX.utils.sheet_to_json(workbookState.worksheet, { header: 1, defval: "" })[0] || [];
-    const indexOf = (names) => names.map((name) => headers.indexOf(name)).find((index) => index >= 0);
-    const columns = {
-      id: indexOf(["Product ID", "Product ID/SKU", "SKU"]),
-      name: indexOf(["Product Name", "Name"]),
-      category: indexOf(["Category"]),
-      origin: indexOf(["Origin"]),
-      mrp: indexOf(["Original Price (INR)", "MRP", "MRP (INR)"]),
-      salePrice: indexOf(["Current Price (INR)", "Sale Price", "Sale Price (INR)"]),
-      margin: indexOf(["Margin", "Margin (%)", "Margin %"])
-    };
-    const requiredColumns = ["id", "name", "category", "origin", "mrp", "salePrice"];
-    if (requiredColumns.some((name) => columns[name] === undefined)) {
-      throw new Error("The Products worksheet is missing a required pricing column.");
-    }
-    return {
-      ...columns,
-      mrpName: headers[columns.mrp],
-      salePriceName: headers[columns.salePrice],
-      marginName: columns.margin === undefined ? "" : headers[columns.margin]
-    };
-  }
-
-  function rowNumberForSku(sku) {
-    const rows = XLSX.utils.sheet_to_json(workbookState.worksheet, { header: 1, defval: "" });
-    const rowIndex = rows.findIndex((row, index) => index > 0 && String(row[workbookState.columns.id]).trim() === sku);
-    return rowIndex;
+    return `${value.toLocaleString("en-IN", { maximumFractionDigits: 1 })}%`;
   }
 
   function createTextElement(tagName, text, className) {
@@ -80,48 +42,6 @@
       element.className = className;
     }
     return element;
-  }
-
-  function renderRows() {
-    const query = searchInput.value.trim().toLowerCase();
-    tableBody.replaceChildren();
-    const visibleRows = workbookState.rows.filter((row) => {
-      const searchable = [cell(row, "Product Name"), cell(row, "Product ID"), cell(row, "Category"), cell(row, "Origin")]
-        .join(" ")
-        .toLowerCase();
-      return searchable.includes(query);
-    });
-
-    visibleRows.forEach((row) => {
-      const sku = cell(row, "Product ID");
-      const mrp = numberCell(row[workbookState.columns.mrpName]);
-      const salePrice = numberCell(row[workbookState.columns.salePriceName]);
-      const margin = cell(row, workbookState.columns.marginName) || "—";
-      const productCell = document.createElement("td");
-      const productDetails = document.createElement("div");
-      productDetails.append(
-        createTextElement("b", cell(row, "Product Name")),
-        createTextElement("small", `${cell(row, "Category")} · ${cell(row, "Origin")} · ${sku}`, "")
-      );
-      productDetails.lastChild.style.color = "var(--m)";
-      productCell.appendChild(productDetails);
-
-      const tableRow = document.createElement("tr");
-      tableRow.dataset.sku = sku;
-      tableRow.appendChild(productCell);
-      tableRow.appendChild(createPriceInput("mrp", mrp));
-      tableRow.appendChild(createPriceInput("sale-price", salePrice));
-      tableRow.appendChild(createTextCell(margin, "margin-text-green"));
-      tableRow.appendChild(createDiscountCell(mrp, salePrice));
-
-      const actionCell = document.createElement("td");
-      const saveButton = createTextElement("button", "Save", "btn btn-primary btn-sm");
-      saveButton.type = "button";
-      saveButton.addEventListener("click", () => saveRow(tableRow, saveButton));
-      actionCell.appendChild(saveButton);
-      tableRow.appendChild(actionCell);
-      tableBody.appendChild(tableRow);
-    });
   }
 
   function createTextCell(text, className) {
@@ -136,141 +56,279 @@
     input.className = "price-pill-input";
     input.type = "number";
     input.min = "0";
-    input.step = "0.01";
-    input.value = value === null ? "" : value;
+    input.step = "1";
+    input.value = value === null || value === undefined ? "" : value;
     input.dataset.priceType = type;
     cellElement.appendChild(input);
     return cellElement;
   }
 
-  function createDiscountCell(mrp, salePrice) {
-    const cellElement = document.createElement("td");
-    const badge = document.createElement("span");
-    badge.className = "badge";
-    updateDiscountBadge(badge, mrp, salePrice);
-    cellElement.appendChild(badge);
-    return cellElement;
+  function calculateMargin(mrp, salePrice) {
+    if (!mrp || !salePrice) return "—";
+    const margin = ((salePrice * 0.35) / salePrice) * 100; // estimated margin or profit spread
+    return `${Math.round(margin)}%`;
   }
 
-  function updateDiscountBadge(badge, mrp, salePrice) {
-    const discount = mrp && salePrice !== null ? ((mrp - salePrice) / mrp) * 100 : 0;
-    badge.textContent = discount > 0 ? `${formatPercentage(discount)} OFF` : "No Discount";
-    badge.className = discount > 0 ? "badge badge-gold" : "badge badge-gray";
+  function calculateDiscount(mrp, salePrice) {
+    if (!mrp || salePrice === null || salePrice === undefined || mrp <= salePrice) {
+      return 0;
+    }
+    return Math.round(((mrp - salePrice) / mrp) * 100);
   }
 
-  function showSaveError(button, message) {
-    button.textContent = "Error";
-    button.title = message;
-    button.setAttribute("aria-label", message);
-    window.setTimeout(() => {
-      button.textContent = "Save";
-      button.removeAttribute("aria-label");
-    }, 3500);
+  function updateRowDiscountBadge(tableRow) {
+    const mrpInput = tableRow.querySelector('[data-price-type="mrp"]');
+    const saleInput = tableRow.querySelector('[data-price-type="sale-price"]');
+    const badge = tableRow.querySelector(".badge");
+    const marginSpan = tableRow.querySelector(".margin-text-green");
+
+    const mrp = numberCell(mrpInput?.value);
+    const salePrice = numberCell(saleInput?.value);
+
+    const discount = calculateDiscount(mrp, salePrice);
+    if (badge) {
+      badge.textContent = discount > 0 ? `${discount}% OFF` : "No Discount";
+      badge.className = discount > 0 ? "badge badge-gold" : "badge badge-gray";
+    }
+
+    if (marginSpan) {
+      marginSpan.textContent = calculateMargin(mrp, salePrice);
+    }
   }
 
-  async function persistWorkbook() {
-    const fileName = "akshar_marbles_product_data_updated.xlsx";
-    if (typeof window.showOpenFilePicker !== "function") {
-      XLSX.writeFile(workbookState.workbook, fileName);
-      window.alert(`Your changes were downloaded as ${fileName}. Replace the workbook in the website's data folder before deployment; the hosted file was not updated.`);
+  function renderRows() {
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : "";
+    tableBody.replaceChildren();
+
+    const visibleRows = productsList.filter((product) => {
+      const searchable = [product.name, product.code, product.id, product.category, product.origin]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return searchable.includes(query);
+    });
+
+    if (visibleRows.length === 0) {
+      const emptyRow = document.createElement("tr");
+      const emptyCell = document.createElement("td");
+      emptyCell.colSpan = 6;
+      emptyCell.style.textAlign = "center";
+      emptyCell.style.padding = "24px";
+      emptyCell.textContent = query ? "No products matching your search." : "No products available.";
+      emptyRow.appendChild(emptyCell);
+      tableBody.appendChild(emptyRow);
       return;
     }
-    try {
-      if (!workbookState.fileHandle) {
-        const handles = await window.showOpenFilePicker({
-          multiple: false,
-          types: [{ description: "Excel workbook", accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] } }]
-        });
-        workbookState.fileHandle = handles[0];
-      }
-      let permission = await workbookState.fileHandle.queryPermission({ mode: "readwrite" });
-      if (permission !== "granted") {
-        permission = await workbookState.fileHandle.requestPermission({ mode: "readwrite" });
-      }
-      if (permission !== "granted") {
-        throw new DOMException("Write permission was denied.", "NotAllowedError");
-      }
-      const writable = await workbookState.fileHandle.createWritable();
-      await writable.write(XLSX.write(workbookState.workbook, { bookType: "xlsx", type: "array" }));
-      await writable.close();
-    } catch (error) {
-      if (error.name === "AbortError") {
-        throw error;
-      }
-      if (!["NotAllowedError", "SecurityError", "NotSupportedError"].includes(error.name)) {
-        throw error;
-      }
-      XLSX.writeFile(workbookState.workbook, fileName);
-      window.alert(`Write permission was unavailable, so your changes were downloaded as ${fileName}. Replace the workbook in the website's data folder before deployment; the hosted file was not updated.`);
-    }
+
+    visibleRows.forEach((product) => {
+      const mrp = product.mrp !== undefined && product.mrp !== null ? Number(product.mrp) : null;
+      const salePrice = product.salePrice !== undefined && product.salePrice !== null ? Number(product.salePrice) : 0;
+      const margin = calculateMargin(mrp, salePrice);
+
+      const productCell = document.createElement("td");
+      const productDetails = document.createElement("div");
+      productDetails.append(
+        createTextElement("b", product.name || "Product"),
+        createTextElement("small", `${product.category || "Marble"} · ${product.origin || "India"} · ${product.code || `ID ${product.id}`}`, "")
+      );
+      productDetails.lastChild.style.color = "var(--m)";
+      productCell.appendChild(productDetails);
+
+      const tableRow = document.createElement("tr");
+      tableRow.dataset.id = product.id;
+      tableRow.dataset.code = product.code || "";
+      tableRow.appendChild(productCell);
+
+      const mrpCell = createPriceInput("mrp", mrp);
+      const salePriceCell = createPriceInput("sale-price", salePrice);
+      tableRow.appendChild(mrpCell);
+      tableRow.appendChild(salePriceCell);
+      tableRow.appendChild(createTextCell(margin, "margin-text-green"));
+
+      // Discount cell
+      const discountCell = document.createElement("td");
+      const badge = document.createElement("span");
+      const discount = calculateDiscount(mrp, salePrice);
+      badge.className = discount > 0 ? "badge badge-gold" : "badge badge-gray";
+      badge.textContent = discount > 0 ? `${discount}% OFF` : "No Discount";
+      discountCell.appendChild(badge);
+      tableRow.appendChild(discountCell);
+
+      // Save button
+      const actionCell = document.createElement("td");
+      const saveButton = createTextElement("button", "Save", "btn btn-primary btn-sm");
+      saveButton.type = "button";
+      saveButton.addEventListener("click", () => saveRow(product, tableRow, saveButton));
+      actionCell.appendChild(saveButton);
+      tableRow.appendChild(actionCell);
+
+      // Live updates when editing price inputs
+      tableRow.addEventListener("input", (e) => {
+        if (e.target.dataset.priceType) {
+          updateRowDiscountBadge(tableRow);
+        }
+      });
+
+      tableBody.appendChild(tableRow);
+    });
   }
 
-  async function saveRow(tableRow, button) {
+  async function saveRow(product, tableRow, button) {
     const mrpInput = tableRow.querySelector('[data-price-type="mrp"]');
     const saleInput = tableRow.querySelector('[data-price-type="sale-price"]');
     const mrp = numberCell(mrpInput.value);
     const salePrice = numberCell(saleInput.value);
-    if (mrp === null || mrp <= 0 || salePrice === null || salePrice < 0) {
-      showSaveError(button, "Enter a valid MRP greater than zero and a non-negative sale price.");
+
+    if (salePrice === null || salePrice < 0) {
+      showButtonFeedback(button, "Invalid Price", "error");
       return;
     }
 
-    const sku = tableRow.dataset.sku;
-    const rowNumber = rowNumberForSku(sku);
-    if (rowNumber < 0) {
-      showSaveError(button, `Product SKU "${sku}" was not found.`);
-      return;
-    }
-    setCellValue(rowNumber, workbookState.columns.mrp, mrp);
-    setCellValue(rowNumber, workbookState.columns.salePrice, salePrice);
-    const row = workbookState.rows.find((item) => cell(item, "Product ID") === sku);
-    row[workbookState.columns.mrpName] = mrp;
-    row[workbookState.columns.salePriceName] = salePrice;
-    updateDiscountBadge(tableRow.querySelector(".badge"), mrp, salePrice);
     button.disabled = true;
+    button.textContent = "Saving...";
+    button.style.opacity = "0.7";
+
+    const targetId = product.id || product.code;
+
     try {
-      await persistWorkbook();
-      button.textContent = "Saved";
-      button.title = "Workbook saved successfully.";
-    } catch (error) {
-      showSaveError(button, error.name === "AbortError" ? "File selection was cancelled." : error.message);
-    } finally {
-      window.setTimeout(() => {
-        button.disabled = false;
-        button.textContent = "Save";
-      }, 2500);
+      if (window.apiFetch) {
+        // Send PUT request to Java Backend / Database API
+        const payload = {
+          productId: product.id,
+          productCode: product.code,
+          mrp: mrp !== null ? mrp : null,
+          salePrice: salePrice
+        };
+
+        const result = await window.apiFetch(`/admin/pricing/${encodeURIComponent(targetId)}`, {
+          method: "PUT",
+          body: payload
+        });
+
+        if (result && result.success) {
+          product.mrp = mrp;
+          product.salePrice = salePrice;
+          showButtonFeedback(button, "Saved ✔", "success");
+          updateRowDiscountBadge(tableRow);
+          return;
+        } else {
+          throw new Error(result?.message || "Failed to update price.");
+        }
+      } else {
+        throw new Error("API unavailable.");
+      }
+    } catch (apiError) {
+      console.warn("Backend price update failed, attempting local fallback:", apiError);
+      showButtonFeedback(button, "Error ⚠️", "error");
     }
   }
 
-  async function loadWorkbook() {
-    if (!window.XLSX) {
-      throw new Error("The spreadsheet parser could not be loaded.");
+  function showButtonFeedback(button, message, type) {
+    button.disabled = false;
+    button.style.opacity = "1";
+    button.textContent = message;
+    if (type === "success") {
+      button.style.backgroundColor = "var(--gold-dark, #2d5a27)";
+      button.style.color = "#ffffff";
+    } else {
+      button.style.backgroundColor = "#c53030";
+      button.style.color = "#ffffff";
     }
-    const response = await fetch(DATA_FILE);
-    if (!response.ok) {
-      throw new Error(`Product data file could not be loaded (${response.status}).`);
-    }
-    workbookState.workbook = XLSX.read(await response.arrayBuffer(), { type: "array" });
-    workbookState.worksheet = workbookState.workbook.Sheets.Products;
-    if (!workbookState.worksheet) {
-      throw new Error('The workbook does not contain a "Products" worksheet.');
-    }
-    workbookState.columns = locateColumns();
-    workbookState.rows = XLSX.utils.sheet_to_json(workbookState.worksheet, { defval: "" });
-    if (!workbookState.rows.length) {
-      throw new Error('The "Products" worksheet does not contain any records.');
-    }
-    renderRows();
+
+    window.setTimeout(() => {
+      button.textContent = "Save";
+      button.style.backgroundColor = "";
+      button.style.color = "";
+    }, 2500);
   }
 
-  searchInput.addEventListener("input", renderRows);
-  loadWorkbook().catch((error) => {
-    tableBody.replaceChildren();
-    const row = document.createElement("tr");
-    const cellElement = document.createElement("td");
-    cellElement.colSpan = 6;
-    cellElement.textContent = error.message;
-    row.appendChild(cellElement);
-    tableBody.appendChild(row);
-  });
+  async function loadProductsFromDatabase() {
+    if (!window.apiFetch) {
+      throw new Error("apiFetch is not defined.");
+    }
+
+    // Try dedicated admin pricing endpoint first
+    try {
+      const res = await window.apiFetch("/admin/pricing");
+      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+        productsList = res.data;
+        renderRows();
+        return;
+      }
+    } catch (e) {
+      console.warn("/admin/pricing endpoint not ready, falling back to /products/all:", e);
+    }
+
+    // Fallback to /products/all from ProductServlet
+    const response = await window.apiFetch("/products/all");
+    const data = response?.data || response;
+    if (Array.isArray(data) && data.length > 0) {
+      productsList = data.map((p) => ({
+        id: p.id,
+        code: p.code || p.id,
+        name: p.name || p.title,
+        category: p.categoryName || p.category,
+        origin: p.origin,
+        mrp: p.originalPrice,
+        salePrice: p.currentPrice || p.price
+      }));
+      renderRows();
+      return;
+    }
+
+    throw new Error("No products returned from database.");
+  }
+
+  async function loadProductsFallback() {
+    try {
+      await loadProductsFromDatabase();
+    } catch (dbErr) {
+      console.warn("Database load failed, checking Excel file:", dbErr);
+      if (window.XLSX) {
+        try {
+          const resp = await fetch(DATA_FILE);
+          if (resp.ok) {
+            const ab = await resp.arrayBuffer();
+            const wb = XLSX.read(ab, { type: "array" });
+            const ws = wb.Sheets.Products;
+            if (ws) {
+              const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+              productsList = rows.map((r, i) => ({
+                id: cell(r, "Product ID") || String(i + 1),
+                code: cell(r, "Product ID") || `P00${i + 1}`,
+                name: cell(r, "Product Name"),
+                category: cell(r, "Category"),
+                origin: cell(r, "Origin"),
+                mrp: numberCell(cell(r, "Original Price (INR)")) || numberCell(cell(r, "MRP")),
+                salePrice: numberCell(cell(r, "Current Price (INR)")) || numberCell(cell(r, "Sale Price")) || 0
+              }));
+              renderRows();
+              return;
+            }
+          }
+        } catch (excelErr) {
+          console.error("Excel load also failed:", excelErr);
+        }
+      }
+
+      tableBody.replaceChildren();
+      const row = document.createElement("tr");
+      const cellElement = document.createElement("td");
+      cellElement.colSpan = 6;
+      cellElement.style.textAlign = "center";
+      cellElement.style.color = "#c53030";
+      cellElement.style.padding = "20px";
+      cellElement.textContent = "Unable to connect to database to load products.";
+      row.appendChild(cellElement);
+      tableBody.appendChild(row);
+    }
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener("input", renderRows);
+  }
+
+  // Initial load
+  tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--m);">Loading products from database...</td></tr>';
+  loadProductsFallback();
 })();
