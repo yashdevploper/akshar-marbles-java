@@ -43,6 +43,58 @@ public class CartServlet extends BaseServlet {
     }
 
     @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        updateCartItem(req, resp, false);
+    }
+
+    @Override
+    protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        updateCartItem(req, resp, true);
+    }
+
+    private void updateCartItem(HttpServletRequest req, HttpServletResponse resp, boolean remove) throws IOException {
+        Long productId = parseOptionalLong(getPathId(req));
+        CartRequest body = remove ? null : readJson(req, CartRequest.class);
+        if (productId == null || (!remove && (body == null || body.getQuantity() == null
+                || body.getQuantity() < 1 || body.getQuantity() > MAX_QUANTITY))) {
+            sendJson(resp, 400, failure(remove ? "A valid product id is required."
+                    : "Quantity must be a whole number from 1 to " + MAX_QUANTITY + "."));
+            return;
+        }
+
+        try (Session session = HibernateUtil.openSession()) {
+            Transaction tx = session.beginTransaction();
+            Cart cart = findCart(session, remove ? parseOptionalLong(req.getParameter("customer_id")) : body.getCustomer_id(),
+                    remove ? req.getParameter("session_token") : body.getSession_token());
+            if (cart == null) {
+                tx.rollback();
+                sendJson(resp, 404, failure("Cart not found."));
+                return;
+            }
+            NativeQuery<?> itemQuery = session.createNativeQuery(remove
+                    ? "DELETE FROM cart_items WHERE cart_id = :cartId AND product_id = :productId"
+                    : "UPDATE cart_items SET quantity = :quantity WHERE cart_id = :cartId AND product_id = :productId")
+                    .setParameter("cartId", cart.getCartId())
+                    .setParameter("productId", productId);
+            if (!remove) {
+                itemQuery.setParameter("quantity", body.getQuantity());
+            }
+            int changed = itemQuery.executeUpdate();
+            if (changed == 0) {
+                tx.rollback();
+                sendJson(resp, 404, failure("Cart item not found."));
+                return;
+            }
+            Map<String, Object> totals = getCartTotals(session, cart.getCartId());
+            tx.commit();
+            sendJson(resp, success("Cart updated.", totals));
+        } catch (Exception e) {
+            logger.error("Failed to update cart item", e);
+            sendJson(resp, 500, failure("Unable to update cart."));
+        }
+    }
+
+    @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         CartRequest body = readJson(req, CartRequest.class);
         Transaction tx = null;
@@ -145,7 +197,7 @@ public class CartServlet extends BaseServlet {
             List<Map<String, Object>> items = new ArrayList<>();
             if (cart != null) {
                 List<Object[]> rows = session.createNativeQuery(
-                        "SELECT ci.cart_item_id, ci.product_id, p.product_name, p.image_path, " +
+                        "SELECT ci.cart_item_id, ci.product_id, p.product_code, p.product_name, p.image_path, " +
                         "ci.quantity, ci.unit_price " +
                         "FROM cart_items ci JOIN products p ON p.product_id = ci.product_id " +
                         "WHERE ci.cart_id = :cartId ORDER BY ci.cart_item_id")
@@ -155,10 +207,11 @@ public class CartServlet extends BaseServlet {
                     Map<String, Object> item = new LinkedHashMap<>();
                     item.put("cart_item_id", row[0]);
                     item.put("product_id", row[1]);
-                    item.put("product_name", row[2]);
-                    item.put("image_path", row[3]);
-                    item.put("quantity", row[4]);
-                    item.put("unit_price", row[5]);
+                    item.put("product_code", row[2]);
+                    item.put("product_name", row[3]);
+                    item.put("image_path", row[4]);
+                    item.put("quantity", row[5]);
+                    item.put("unit_price", row[6]);
                     items.add(item);
                 }
             }
@@ -231,5 +284,14 @@ public class CartServlet extends BaseServlet {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private String getPathId(HttpServletRequest req) {
+        String path = req.getPathInfo();
+        if (path == null || path.length() <= 1) {
+            return null;
+        }
+        String[] segments = path.split("/");
+        return segments.length == 2 ? segments[1] : null;
     }
 }

@@ -153,6 +153,35 @@
                     <failOnMissingWebXml>true</failOnMissingWebXml>
                     <warSourceDirectory>${project.basedir}/src/main/webapp</warSourceDirectory>
                     <webXml>${project.basedir}/src/main/webapp/WEB-INF/web.xml</webXml>
+                    <webResources>
+                        <resource>
+                            <directory>${project.basedir}</directory>
+                            <targetPath>/</targetPath>
+                            <includes>
+                                <include>*.html</include>
+                                <include>*.css</include>
+                                <include>*.js</include>
+                                <include>assets/**</include>
+                                <include>Components/**</include>
+                                <include>components/**</include>
+                                <include>frontend/**</include>
+                            </includes>
+                            <excludes>
+                                <exclude>pom.xml</exclude>
+                                <exclude>target/**</exclude>
+                                <exclude>src/**</exclude>
+                                <exclude>.git/**</exclude>
+                                <exclude>.gemini/**</exclude>
+                                <exclude>**/*.xlsx</exclude>
+                                <exclude>*.bat</exclude>
+                                <exclude>schema*.sql</exclude>
+                                <exclude>*.md</exclude>
+                                <exclude>Dockerfile</exclude>
+                                <exclude>docker-entrypoint.sh</exclude>
+                                <exclude>render.yaml</exclude>
+                            </excludes>
+                        </resource>
+                    </webResources>
                 </configuration>
             </plugin>
         </plugins>

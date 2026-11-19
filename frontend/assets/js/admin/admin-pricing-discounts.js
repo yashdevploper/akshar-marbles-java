@@ -1,5 +1,5 @@
 (function () {
-  const DATA_FILE = "../../assets/data/akshar_marbles_product_data.xlsx";
+  const DATA_FILE = "../assets/data/akshar_marbles_product_data.xlsx";
   const workbookState = {
     workbook: null,
     worksheet: null,

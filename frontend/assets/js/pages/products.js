@@ -1,7 +1,7 @@
 (function () {
-  const assetBase = window.location.pathname.toLowerCase().includes('/pages/')
-    ? '../assets/'
-    : 'assets/';
+  const assetBase = window.location.pathname.toLowerCase().includes("/pages/")
+    ? "../assets/"
+    : "assets/";
   const products = [
     {
       id: "SKU-0021",
@@ -18,7 +18,7 @@
       reviews: 284,
       badge: { text: "Bestseller", type: "gold" },
       galleryFolder: "Statuario White",
-      image: "assets/front-images/Statuario white Italian marble slab with dramatic grey veining, polished surface, luxury material ph.png",
+      image: `${assetBase}front-images/Statuario white Italian marble slab with dramatic grey veining, polished surface, luxury material ph.png`,
       spec: 'Italy · Polished · 24"×24"',
       dimensions: '24"×24"',
       description: "The pinnacle of Italian marble craftsmanship — bold, dramatic veining on a pristine white canvas. A timeless symbol of luxury.",
@@ -53,7 +53,7 @@
       reviews: 196,
       badge: { text: "Premium", type: "green" },
       galleryFolder: "Calacatta Gold",
-      image: "assets/front-images/Calacatta Gold Italian marble with golden yellow veins on white background, luxury interior stone, p.png",
+      image: `${assetBase}front-images/Calacatta Gold Italian marble with golden yellow veins on white background, luxury interior stone, p.png`,
       spec: 'Italy · Polished · 24"×48"',
       dimensions: '24"×48"'
     },
@@ -72,7 +72,7 @@
       reviews: 142,
       badge: { text: "Bestseller", type: "gold" },
       galleryFolder: "Nero Marquina",
-      image: "assets/front-images/black Nero Marquina Spanish marble texture with white veins, luxury stone surface, premium quality.png",
+      image: `${assetBase}front-images/black Nero Marquina Spanish marble texture with white veins, luxury stone surface, premium quality.png`,
       spec: 'Spain · Honed · 24"×24"',
       dimensions: '24"×24"'
     },
@@ -91,7 +91,7 @@
       reviews: 98,
       badge: { text: "Rich Texture", type: "gold" },
       galleryFolder: "Emperador Dark",
-      image: "assets/marble-emperador.svg",
+      image: `${assetBase}front-images/Makrana-Marble-2.png`,
       spec: 'Spain · Polished · 18"×18"',
       dimensions: '18"×18"'
     },
@@ -110,7 +110,7 @@
       reviews: 67,
       badge: { text: "Exotic Luxury", type: "green" },
       galleryFolder: "Onyx Green",
-      image: "assets/front-images/translucent green onyx stone slab with backlit glow, exotic luxury interior material, jewel-like nat.png",
+      image: `${assetBase}front-images/translucent green onyx stone slab with backlit glow, exotic luxury interior material, jewel-like nat.png`,
       spec: 'Pakistan · Backlit · 24"×48"',
       dimensions: '24"×48"'
     },
@@ -129,7 +129,7 @@
       reviews: 218,
       badge: { text: "Heritage Stone", type: "gold" },
       galleryFolder: "Makrana White",
-      image: "assets/front-images/Rajasthan white makrana marble India, traditional Indian marble flooring pattern, natural stone luxu.png",
+      image: `${assetBase}front-images/Rajasthan white makrana marble India, traditional Indian marble flooring pattern, natural stone luxu.png`,
       spec: 'India · Polished · 24"×24"',
       dimensions: '24"×24"'
     },
@@ -148,7 +148,7 @@
       reviews: 84,
       badge: null,
       galleryFolder: "Bianco Sivec",
-      image: "assets/front-images/polished Italian white Carrara marble surface close-up, elegant veining pattern, luxury stone textur.png",
+      image: `${assetBase}front-images/polished Italian white Carrara marble surface close-up, elegant veining pattern, luxury stone textur.png`,
       spec: 'Italy · Honed · 18"×18"',
       dimensions: '18"×18"'
     },
@@ -167,7 +167,7 @@
       reviews: 32,
       badge: { text: "New Arrival", type: "gold" },
       galleryFolder: "Arabescato Corchia",
-      image: "assets/marble-arabescato.svg",
+      image: `${assetBase}front-images/Arabescato-Corchia-Marble.png`,
       spec: 'Italy · Polished · 24"×24"',
       dimensions: '24"×24"'
     },
@@ -186,7 +186,7 @@
       reviews: 102,
       badge: { text: "15% OFF", type: "gold" },
       galleryFolder: "Crystal White",
-      image: "assets/marble-crystal.svg",
+      image: `${assetBase}front-images/polished Italian white Carrara marble surface close-up, elegant veining pattern, luxury stone textur.png`,
       spec: 'Turkey · Polished · 24"×24"',
       dimensions: '24"×24"'
     },
@@ -205,7 +205,7 @@
       reviews: 115,
       badge: { text: "Durable", type: "green" },
       galleryFolder: "Black Galaxy Granite",
-      image: "assets/marble-nero.svg",
+      image: `${assetBase}front-images/black Nero Marquina Spanish marble texture with white veins, luxury stone surface, premium quality.png`,
       spec: 'India · Leathered · 24"×24"',
       dimensions: '24"×24"'
     },
@@ -224,7 +224,7 @@
       reviews: 154,
       badge: { text: "Classic", type: "gold" },
       galleryFolder: "Crema Marfil",
-      image: "assets/marble-bianco.svg",
+      image: `${assetBase}front-images/Rajasthan white makrana marble India, traditional Indian marble flooring pattern, natural stone luxu.png`,
       spec: 'Spain · Brushed · 24"×24"',
       dimensions: '24"×24"'
     },
@@ -243,27 +243,11 @@
       reviews: 76,
       badge: { text: "Natural Art", type: "green" },
       galleryFolder: "Rainforest Green",
-      image: "assets/marble-onyx.svg",
+      image: `${assetBase}front-images/glowing translucent green onyx stone with backlit illumination, luxury precious stone, interior desi.png`,
       spec: 'India · Brushed · 24"×24"',
       dimensions: '24"×24"'
     }
   ];
-
-  const imagePaths = {
-    'assets/marble-emperador.svg': 'assets/front-images/Makrana-Marble-2.png',
-    'assets/marble-arabescato.svg': 'assets/front-images/Arabescato-Corchia-Marble.png',
-    'assets/marble-crystal.svg': 'assets/front-images/polished Italian white Carrara marble surface close-up, elegant veining pattern, luxury stone textur.png',
-    'assets/marble-nero.svg': 'assets/front-images/black Nero Marquina Spanish marble texture with white veins, luxury stone surface, premium quality.png',
-    'assets/marble-bianco.svg': 'assets/front-images/Rajasthan white makrana marble India, traditional Indian marble flooring pattern, natural stone luxu.png',
-    'assets/marble-onyx.svg': 'assets/front-images/glowing translucent green onyx stone with backlit illumination, luxury precious stone, interior desi.png'
-  };
-
-  products.forEach((product) => {
-    let image = imagePaths[product.image] || product.image;
-    image = image.replace('assets/front-images/', `${assetBase}front-images/`);
-    image = image.replace(/^assets\//, assetBase);
-    product.image = image;
-  });
 
   window.AksharProducts = products;
 })();

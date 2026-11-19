@@ -6,6 +6,7 @@
   const FREE_DELIVERY_THRESHOLD = 25000;
 
   let PRODUCTS = Object.fromEntries((window.AksharProducts || []).map((product) => [product.id, product]));
+  let databaseCart = null;
 
   window.addEventListener("akshar:products-loaded", () => {
     PRODUCTS = Object.fromEntries((window.AksharProducts || []).map((product) => [product.id, product]));
@@ -50,18 +51,53 @@
     }
   }
 
+  function resolveNumericId(productId) {
+    if (typeof productId === "number" && !isNaN(productId) && productId > 0) {
+      return productId;
+    }
+    const prod = PRODUCTS[productId];
+    if (prod && prod.numericId) {
+      return Number(prod.numericId);
+    }
+    if (typeof productId === "string") {
+      const match = productId.match(/^P0*(\d+)$/i);
+      if (match) {
+        return parseInt(match[1], 10);
+      }
+      const num = Number(productId);
+      if (!isNaN(num) && num > 0) return num;
+    }
+    return Number(productId) || null;
+  }
+
   async function addDatabaseCartItem(productId, quantity) {
     if (!window.apiFetch) {
       throw new Error("Cart API is unavailable.");
     }
+    const numId = resolveNumericId(productId);
     const body = {
-      product_id: Number(productId),
+      product_id: numId,
       quantity: Number(quantity),
       ...getCartIdentifier()
     };
     return await window.apiFetch("/cart/items", {
       method: "POST",
       body
+    });
+  }
+
+  async function updateDatabaseCartItem(productId, quantity) {
+    const numId = resolveNumericId(productId);
+    return await window.apiFetch(`/cart/items/${encodeURIComponent(numId)}`, {
+      method: "PUT",
+      body: { product_id: numId, quantity: Number(quantity), ...getCartIdentifier() }
+    });
+  }
+
+  async function removeDatabaseCartItem(productId) {
+    const numId = resolveNumericId(productId);
+    return await window.apiFetch(`/cart/items/${encodeURIComponent(numId)}?${new URLSearchParams(getCartIdentifier())}`, {
+      method: "DELETE"
     });
   }
 
@@ -125,24 +161,28 @@
       setText("summary-delivery", "FREE");
       setText("summary-total", formatCurrency(0));
       setText("cart-page-meta", "0 items · Estimated delivery unavailable");
+      setCheckoutEnabled(false);
       return;
     }
 
     const subtotal = cart.reduce((total, item) => total + item.unitPrice * item.quantity, 0);
     list.innerHTML = cart.map((item) => `
-      <article class="cart-item-card" data-cart-id="${escapeHTML(item.id)}">
+      <article class="cart-item-card" data-cart-id="${escapeHTML(item.id)}" data-product-id="${escapeHTML(item.productId)}">
         <div class="cart-item-main">
           <div class="cart-item-thumb"><img src="${escapeHTML(item.image)}" alt="${escapeHTML(item.name)}"></div>
           <div class="cart-item-details">
-            <div class="cart-item-category">Product · ID ${escapeHTML(item.id)}</div>
+            <div class="cart-item-category">Product · ${escapeHTML(item.code || `ID ${item.productId}`)}</div>
             <h3 class="cart-item-title">${escapeHTML(item.name)}</h3>
             <div class="cart-qty-stepper-wrap">
               <div class="qty-stepper">
+                <button class="qty-btn" type="button" data-quantity-action="decrease" aria-label="Decrease quantity">−</button>
                 <span class="qty-display">${item.quantity} sqft</span>
+                <button class="qty-btn" type="button" data-quantity-action="increase" aria-label="Increase quantity">＋</button>
               </div>
             </div>
           </div>
           <div class="cart-item-right">
+            <button class="btn-remove-item" type="button" title="Remove item" data-remove-item>🗑</button>
             <div>
               <div class="cart-item-price-current">${formatCurrency(item.unitPrice * item.quantity)}</div>
             </div>
@@ -164,6 +204,9 @@
     setText("summary-gst", formatCurrency(gst));
     setText("summary-delivery", "FREE");
     setText("summary-total", formatCurrency(subtotal + gst));
+    setText("delivery-estimate", "Estimated delivery unavailable");
+    setText("delivery-address", getUser()?.address || "Delivery address not saved");
+    setCheckoutEnabled(true);
   }
 
   function getProductId(element) {
@@ -328,25 +371,39 @@
     }
   }
 
+  function setCheckoutEnabled(enabled) {
+    const checkout = document.getElementById("checkout-button");
+    if (!checkout) return;
+    checkout.setAttribute("aria-disabled", String(!enabled));
+    checkout.style.pointerEvents = enabled ? "" : "none";
+    checkout.style.opacity = enabled ? "" : "0.55";
+  }
+
   function setupCartPage() {
     const list = document.getElementById("cart-items-list");
     if (!list) {
       return;
     }
-    loadDatabaseCart().then((databaseCart) => {
-      if (!databaseCart || !Array.isArray(databaseCart.items)) {
+    list.innerHTML = '<div class="cart-empty-state"><h3>Loading your cart...</h3></div>';
+    const summaryItems = document.getElementById("summary-items-list");
+    if (summaryItems) summaryItems.innerHTML = '<div class="summary-row"><span>Loading cart...</span><b>...</b></div>';
+    loadDatabaseCart().then((loadedCart) => {
+      databaseCart = loadedCart;
+      if (!loadedCart || !Array.isArray(loadedCart.items)) {
         renderCart();
         return;
       }
-      const cart = databaseCart.items.map((item) => ({
-        id: String(item.product_id),
+      const cart = loadedCart.items.map((item) => ({
+        id: String(item.cart_item_id),
+        productId: Number(item.product_id),
         quantity: Number(item.quantity),
         name: item.product_name,
+        code: item.product_code,
         unitPrice: Number(item.unit_price),
-        image: item.image_path
+        image: normalizeImagePath(item.image_path)
       }));
       renderDatabaseCart(cart);
-      setCartCount(databaseCart.cartCount || 0);
+      setCartCount(loadedCart.cartCount || 0);
     });
 
     list.addEventListener("click", (event) => {
@@ -355,7 +412,25 @@
         return;
       }
 
+      if (databaseCart && card.dataset.productId) {
+        const productId = Number(card.dataset.productId);
+        const item = databaseCart.items.find((entry) => Number(entry.product_id) === productId);
+        if (!item) return;
+        const action = event.target.closest("[data-remove-item]")
+          ? "remove"
+          : event.target.closest('[data-quantity-action="increase"]') ? "increase"
+            : event.target.closest('[data-quantity-action="decrease"]') ? "decrease" : null;
+        if (!action) return;
+        const nextQuantity = Number(item.quantity) + (action === "increase" ? 1 : -1);
+        const request = action === "remove" || nextQuantity < 1
+          ? removeDatabaseCartItem(productId)
+          : updateDatabaseCartItem(productId, nextQuantity);
+        request.then(refreshDatabaseCart).catch(showCartError);
+        return;
+      }
+
       const product = PRODUCTS[card.dataset.cartId];
+      if (!product) return;
       const cart = readCart();
       const item = cart.find((entry) => entry.id === product.id);
       if (!item) {
@@ -416,22 +491,60 @@
     });
 
     document.getElementById("checkout-button")?.addEventListener("click", (event) => {
-      const cart = readCart();
+      const cart = databaseCart && Array.isArray(databaseCart.items)
+        ? databaseCart.items.map((item) => ({
+          id: String(item.product_id),
+          quantity: Number(item.quantity),
+          unitPrice: Number(item.unit_price)
+        }))
+        : readCart();
       if (cart.length === 0) {
         event.preventDefault();
         return;
       }
       const promoCode = sessionStorage.getItem("akshar_cart_promo") || "";
-      const subtotal = cart.reduce((total, item) => total + PRODUCTS[item.id].price * item.quantity, 0);
+      const subtotal = cart.reduce((total, item) => total + (item.unitPrice || PRODUCTS[item.id].price) * item.quantity, 0);
+      const checkoutTotals = databaseCart
+        ? { subtotal, discount: 0, gst: Math.round(subtotal * GST_RATE), delivery: 0, total: subtotal + Math.round(subtotal * GST_RATE) }
+        : calculateTotals(cart, getPromo(promoCode, subtotal));
       localStorage.setItem(CHECKOUT_KEY, JSON.stringify({
         customerId: getUser()?.id || null,
         items: cart,
-        totals: calculateTotals(cart, getPromo(promoCode, subtotal))
+        totals: checkoutTotals
       }));
     });
 
     window.addEventListener("akshar:cart-change", renderCart);
     renderCart();
+  }
+
+  function normalizeImagePath(path) {
+    if (!path) return "../assets/front-images/placeholder.png";
+    return `../${String(path).replace(/^assets[\\/]/i, "").replace(/^Front-images[\\/]/i, "front-images/")}`;
+  }
+
+  function refreshDatabaseCart() {
+    return loadDatabaseCart().then((loadedCart) => {
+      if (!loadedCart || !Array.isArray(loadedCart.items)) {
+        throw new Error("Unable to refresh cart.");
+      }
+      databaseCart = loadedCart;
+      renderDatabaseCart(loadedCart.items.map((item) => ({
+        id: String(item.cart_item_id),
+        productId: Number(item.product_id),
+        quantity: Number(item.quantity),
+        name: item.product_name,
+        code: item.product_code,
+        unitPrice: Number(item.unit_price),
+        image: normalizeImagePath(item.image_path)
+      })));
+      setCartCount(loadedCart.cartCount || 0);
+    });
+  }
+
+  function showCartError(error) {
+    console.error("Unable to update cart:", error);
+    setText("cart-page-meta", error.message || "Unable to update cart.");
   }
 
   document.addEventListener("click", (event) => {
@@ -458,7 +571,7 @@
     }
 
     const product = PRODUCTS[productId];
-    const numericProductId = product?.numericId || (/^\d+$/.test(productId) ? Number(productId) : null);
+    const numericProductId = resolveNumericId(productId);
     if (!numericProductId) {
       console.error("Product has no numeric product_id:", productId);
       addButton.setAttribute("aria-label", "Unable to identify this product");

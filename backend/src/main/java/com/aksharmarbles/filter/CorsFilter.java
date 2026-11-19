@@ -11,7 +11,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 @WebFilter(filterName = "CorsFilter", urlPatterns = {"/api/*"})
 public class CorsFilter implements Filter {
@@ -21,20 +20,18 @@ public class CorsFilter implements Filter {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
         String origin = httpRequest.getHeader("Origin");
-        String configuredOrigins = AppConfig.get("cors.allowedOrigins");
-        if (configuredOrigins == null || configuredOrigins.trim().isEmpty()) {
-            configuredOrigins = "http://localhost,http://localhost:5500,http://127.0.0.1,http://127.0.0.1:5500";
-        }
+        String configuredOrigin = AppConfig.get("cors.allowedOrigin");
 
-        boolean originAllowed = origin != null && Arrays.stream(configuredOrigins.split(","))
-                .map(String::trim)
-                .filter(value -> !value.isEmpty())
-                .anyMatch(value -> "*".equals(value) || value.equalsIgnoreCase(origin));
-
-        if (originAllowed) {
-            httpResponse.setHeader("Access-Control-Allow-Origin", origin);
+        if (origin != null && (configuredOrigin == null || configuredOrigin.trim().isEmpty()
+                || "*".equals(configuredOrigin.trim()) || configuredOrigin.trim().equalsIgnoreCase(origin))) {
+            httpResponse.setHeader("Access-Control-Allow-Origin",
+                    "*".equals(configuredOrigin.trim()) ? "*" : origin);
             httpResponse.setHeader("Vary", "Origin");
-            httpResponse.setHeader("Access-Control-Allow-Credentials", "true");
+        }
+        if (origin != null && (configuredOrigin == null || configuredOrigin.trim().isEmpty()
+                || "*".equals(configuredOrigin.trim()) || configuredOrigin.trim().equalsIgnoreCase(origin))) {
+            httpResponse.setHeader("Access-Control-Allow-Credentials",
+                    "*".equals(configuredOrigin == null ? "" : configuredOrigin.trim()) ? "false" : "true");
         }
         httpResponse.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
         httpResponse.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, X-CSRF-Token");

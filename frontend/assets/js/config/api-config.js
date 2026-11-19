@@ -4,14 +4,26 @@
 (function (global) {
   'use strict';
 
-  // Determine base URL: works on root context '/' or any sub-path context
-  const getContextPath = () => {
-    // In root context, context path is ""
-    return '';
+  // Determine base URL: works on root context '/', local dev server (port 5500, etc.), or Render
+  const getApiBaseUrl = () => {
+    if (typeof window !== 'undefined') {
+      if (window.AKSHAR_API_BASE) return window.AKSHAR_API_BASE;
+      try {
+        const custom = localStorage.getItem('akshar_api_base');
+        if (custom) return custom;
+      } catch (_) {}
+
+      // If running on local dev server (e.g. Live Server on 5500, Vite 5173, etc. or file://)
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (window.location.protocol === 'file:' || (isLocal && window.location.port !== '8080' && window.location.port !== '')) {
+        return 'http://localhost:8080/api';
+      }
+    }
+    return '/api';
   };
 
   const API_CONFIG = {
-    BASE_URL: getContextPath() + '/api',
+    BASE_URL: getApiBaseUrl(),
     TIMEOUT_MS: 15000,
     ENDPOINTS: {
       HEALTH: '/health',
@@ -53,9 +65,13 @@
    * credential passing (cookies), and CSRF header support.
    */
   async function apiFetch(endpoint, options = {}) {
-    const url = endpoint.startsWith('http') || endpoint.startsWith('/') 
-      ? (endpoint.startsWith('/api') ? endpoint : API_CONFIG.BASE_URL + endpoint.replace(/^\/?api/, ''))
-      : `${API_CONFIG.BASE_URL}/${endpoint.replace(/^\//, '')}`;
+    let url;
+    if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+      url = endpoint;
+    } else {
+      const cleanEndpoint = endpoint.replace(/^\/?api\/?/, '').replace(/^\//, '');
+      url = `${API_CONFIG.BASE_URL}/${cleanEndpoint}`;
+    }
 
     const headers = {
       'Accept': 'application/json',
@@ -73,10 +89,11 @@
       headers['X-CSRF-Token'] = csrfToken;
     }
 
+    const isCrossOrigin = url.startsWith('http') && typeof window !== 'undefined' && !url.startsWith(window.location.origin);
     const fetchConfig = {
       ...options,
       headers,
-      credentials: options.credentials || 'same-origin'
+      credentials: options.credentials || (isCrossOrigin ? 'include' : 'same-origin')
     };
 
     try {

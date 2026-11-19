@@ -11,12 +11,28 @@ FROM maven:3.9.9-eclipse-temurin-17 AS builder
 
 WORKDIR /build
 
-# Pre-fetch dependencies where possible to leverage Docker layer caching
-COPY pom.xml .
+# Pre-fetch backend dependencies
+COPY backend/pom.xml ./pom.xml
 RUN mvn dependency:go-offline -B || true
 
-# Copy the backend sources
-COPY src ./src
+# Copy backend application sources
+COPY backend/src ./src
+
+# Copy frontend assets and pages into the WAR build directory
+COPY frontend/ ./frontend/
+COPY frontend/assets ./assets
+COPY frontend/components ./Components
+COPY frontend/components ./components
+COPY frontend/index.html ./home.html
+COPY frontend/index.html ./index.html
+COPY frontend/pages/*.html ./
+COPY frontend/admin/*.html ./
+COPY frontend/assets/js/pages/*.js ./
+COPY frontend/assets/js/config/*.js ./
+COPY frontend/assets/js/admin/*.js ./
+COPY frontend/assets/css/pages/*.css ./
+COPY frontend/assets/css/base/*.css ./
+COPY frontend/assets/css/admin/*.css ./
 
 # If application.properties is absent (due to .gitignore), populate it from the template
 RUN if [ ! -f src/main/resources/application.properties ]; then \
@@ -40,7 +56,7 @@ RUN rm -rf webapps/*
 COPY --from=builder /build/target/ROOT.war webapps/ROOT.war
 
 # Copy startup entrypoint script and sanitize line endings (CRLF -> LF)
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY backend/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && \
     chmod +x /usr/local/bin/docker-entrypoint.sh
 

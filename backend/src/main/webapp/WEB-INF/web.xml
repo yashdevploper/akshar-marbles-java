@@ -6,6 +6,12 @@
 
     <display-name>Akshar Marbles E-Commerce</display-name>
 
+    <!-- Welcome Files: Serve home.html as default landing page -->
+    <welcome-file-list>
+        <welcome-file>home.html</welcome-file>
+        <welcome-file>index.html</welcome-file>
+    </welcome-file-list>
+
     <!-- Global Session Configuration -->
     <!-- Cookie attributes (HttpOnly, Secure, SameSite) are managed dynamically -->
     <!-- by AppContextListener based on the active runtime environment. -->

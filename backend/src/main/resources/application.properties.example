@@ -36,6 +36,3 @@ app.shipping.flatRate=1500.00
 app.auth.sessionTimeoutMinutes=120
 app.auth.rateLimitMaxAttempts=5
 app.auth.rateLimitWindowMinutes=15
-
-# Comma-separated exact browser origins. Replace <username> with the GitHub username.
-cors.allowedOrigins=https://<username>.github.io,http://localhost,http://localhost:5500,http://127.0.0.1,http://127.0.0.1:5500

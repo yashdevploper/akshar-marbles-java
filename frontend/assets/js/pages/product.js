@@ -20,7 +20,11 @@
       return "";
     }
     try {
-      return new URL(value.replace(/\\/g, "/"), document.baseURI).href;
+      const normalized = value.replace(/\\/g, "/").replace(
+        /^assets\/front-images\//i,
+        "../assets/front-images/"
+      );
+      return new URL(normalized, document.baseURI).href;
     } catch (error) {
       return "";
     }

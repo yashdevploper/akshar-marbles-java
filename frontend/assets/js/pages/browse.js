@@ -63,7 +63,11 @@
       return "";
     }
     try {
-      return new URL(value.replace(/\\/g, "/"), document.baseURI).href;
+      const normalized = value.replace(/\\/g, "/").replace(
+        /^assets\/front-images\//i,
+        "../assets/front-images/"
+      );
+      return new URL(normalized, document.baseURI).href;
     } catch (error) {
       return "";
     }
@@ -121,6 +125,18 @@
     }).filter((product) => product.id && product.title);
   }
 
+  function inferColor(name, origin, finish) {
+    const text = (String(name) + " " + String(origin) + " " + String(finish)).toLowerCase();
+    if (text.includes("black") || text.includes("nero") || text.includes("galaxy")) return "Black";
+    if (text.includes("green") || text.includes("emerald") || text.includes("rainforest") || text.includes("onyx")) return "Emerald Green";
+    if (text.includes("crema") || text.includes("cream") || text.includes("tan") || text.includes("calacatta") || text.includes("gold")) return "Tan / Cream";
+    if (text.includes("brown") || text.includes("emperador") || text.includes("dark")) return "Brown";
+    if (text.includes("terracotta") || text.includes("red")) return "Terracotta";
+    if (text.includes("purple")) return "Purple";
+    if (text.includes("blue") || text.includes("slate")) return "Slate Blue";
+    return "White";
+  }
+
   function mapDtoToProduct(dto) {
     const id = dto.code || String(dto.id);
     const title = dto.name || "";
@@ -136,7 +152,7 @@
       category: dto.categoryName || "",
       origin,
       finish,
-      color: "",
+      color: inferColor(title, origin, finish),
       availability: dto.stockStatus || "In Stock",
       price: Number(dto.currentPrice) || 0,
       strikePrice: dto.originalPrice ? Number(dto.originalPrice) : null,
@@ -491,7 +507,57 @@
     `;
   }
 
+  function syncDynamicSidebarFilters() {
+    // 1. Sync Categories from PRODUCTS
+    const catContainer = document.querySelector('.sidebar-filter-block [data-group="category"]')?.parentElement;
+    if (catContainer && PRODUCTS.length > 0) {
+      const uniqueCats = Array.from(new Set(PRODUCTS.map((p) => p.category).filter(Boolean)));
+      const existingCats = new Set(Array.from(catContainer.querySelectorAll('[data-group="category"]')).map((el) => el.getAttribute('data-value')));
+      uniqueCats.forEach((cat) => {
+        if (!existingCats.has(cat)) {
+          const label = document.createElement('label');
+          label.className = 'filter-checkbox-item';
+          label.setAttribute('data-group', 'category');
+          label.setAttribute('data-value', cat);
+          label.innerHTML = `
+            <div class="filter-checkbox-left">
+              <span class="custom-box"></span>
+              <span>${cat}</span>
+            </div>
+            <span class="filter-item-count">0</span>
+          `;
+          catContainer.appendChild(label);
+        }
+      });
+    }
+
+    // 2. Sync Origins from PRODUCTS
+    const originContainer = document.querySelector('.sidebar-filter-block [data-group="origin"]')?.parentElement;
+    if (originContainer && PRODUCTS.length > 0) {
+      const uniqueOrigins = Array.from(new Set(PRODUCTS.map((p) => p.origin).filter(Boolean)));
+      const existingOrigins = new Set(Array.from(originContainer.querySelectorAll('[data-group="origin"]')).map((el) => el.getAttribute('data-value')));
+      uniqueOrigins.forEach((orig) => {
+        if (!existingOrigins.has(orig)) {
+          const label = document.createElement('label');
+          label.className = 'filter-checkbox-item';
+          label.setAttribute('data-group', 'origin');
+          label.setAttribute('data-value', orig);
+          label.innerHTML = `
+            <div class="filter-checkbox-left">
+              <span class="custom-box"></span>
+              <span>${orig}</span>
+            </div>
+            <span class="filter-item-count">0</span>
+          `;
+          originContainer.appendChild(label);
+        }
+      });
+    }
+  }
+
   function updateSidebarCounts() {
+    syncDynamicSidebarFilters();
+
     // Category counts
     document.querySelectorAll('[data-group="category"]').forEach((el) => {
       const val = el.getAttribute('data-value');
@@ -729,12 +795,15 @@
   }
 
   function setupEventListeners() {
-    // Checkbox items click handling
-    document.querySelectorAll('.filter-checkbox-item[data-group]').forEach((label) => {
-      label.addEventListener('click', function (e) {
+    // Checkbox items click handling (delegated on sidebar for dynamic categories)
+    const sidebar = document.querySelector('.filters-sidebar');
+    if (sidebar) {
+      sidebar.addEventListener('click', function (e) {
+        const label = e.target.closest('.filter-checkbox-item[data-group]');
+        if (!label) return;
         e.preventDefault();
-        const group = this.getAttribute('data-group');
-        const val = this.getAttribute('data-value');
+        const group = label.getAttribute('data-group');
+        const val = label.getAttribute('data-value');
 
         let targetSet;
         if (group === 'category') targetSet = state.categories;
@@ -752,7 +821,7 @@
           applyFiltersAndRender();
         }
       });
-    });
+    }
 
     // Color swatches click handling
     document.querySelectorAll('.color-swatch-circle').forEach((swatch) => {

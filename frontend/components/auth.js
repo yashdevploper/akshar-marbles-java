@@ -13,23 +13,6 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   const STORAGE_KEY = 'akshar_auth_user';
 
-  function pageUrl(name) {
-    const path = window.location.pathname.toLowerCase();
-    if (path.includes('/admin/')) {
-      if (name === 'index.html') return '../index.html';
-      if (name.startsWith('admin-')) return name;
-      return `../pages/${name}`;
-    }
-    if (path.includes('/pages/')) {
-      if (name === 'index.html') return '../index.html';
-      if (name.startsWith('admin-')) return `../admin/${name}`;
-      return name;
-    }
-    if (name === 'index.html') return 'index.html';
-    if (name.startsWith('admin-')) return `admin/${name}`;
-    return `pages/${name}`;
-  }
-
   // Standard demo users for the application
   const DEMO_USERS = {
     client: {
@@ -95,9 +78,9 @@
 
     // Return the designated post-login landing page
     if (user.role === 'admin') {
-      return pageUrl('admin-dashboard.html');
+      return 'admin-dashboard.html';
     } else {
-      return pageUrl('browse.html');
+      return 'browse.html';
     }
   }
 
@@ -109,9 +92,9 @@
     if (redirectUrl) {
       window.location.href = redirectUrl;
     } else if (wasAdmin) {
-      window.location.href = pageUrl('admin-login.html');
+      window.location.href = 'admin-login.html';
     } else {
-      window.location.href = pageUrl('index.html');
+      window.location.href = 'index.html';
     }
   }
 
@@ -128,7 +111,7 @@
     // If on admin-login.html and already logged in as admin, redirect to admin dashboard
     if (current === 'admin-login.html') {
       if (user && user.role === 'admin') {
-        window.location.replace(pageUrl('admin-dashboard.html'));
+        window.location.replace('admin-dashboard.html');
       }
       return;
     }
@@ -138,7 +121,7 @@
       if (!user || user.role !== 'admin') {
         // Redirect to admin login with return path
         const target = encodeURIComponent(current);
-        window.location.replace(`${pageUrl('admin-login.html')}?redirect=${target}&reason=unauthorized`);
+        window.location.replace(`admin-login.html?redirect=${target}&reason=unauthorized`);
       }
     }
   }
@@ -150,9 +133,9 @@
     if (current === 'login.html') {
       if (user) {
         if (user.role === 'admin') {
-          window.location.replace(pageUrl('admin-dashboard.html'));
+          window.location.replace('admin-dashboard.html');
         } else {
-          window.location.replace(pageUrl('browse.html'));
+          window.location.replace('browse.html');
         }
       }
     }

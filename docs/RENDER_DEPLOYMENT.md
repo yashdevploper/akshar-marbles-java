@@ -50,7 +50,7 @@ Cloud database providers often:
 3. Forbid dropping system tables.
 
 To accommodate this safely without overwriting any existing databases, use the dedicated safe import script:
-[schema_safe_import.sql](../database/schema_safe_import.sql).
+[schema_safe_import.sql](schema_safe_import.sql).
 
 ### Key Features of `schema_safe_import.sql`:
 - **No `CREATE DATABASE` / `USE` statements**: Executes directly against your provider's assigned database.
@@ -61,12 +61,12 @@ To accommodate this safely without overwriting any existing databases, use the d
 ### Safe Import Command:
 Connect to your remote database and import:
 ```bash
-mysql -h <HOST> -P <PORT> -u <USER> -p <ASSIGNED_DATABASE_NAME> < ../database/schema_safe_import.sql
+mysql -h <HOST> -P <PORT> -u <USER> -p <ASSIGNED_DATABASE_NAME> < schema_safe_import.sql
 ```
 
 #### Example with Clever Cloud / Remote Host:
 ```bash
-mysql -h bxyz123.clever-cloud.com -P 3306 -u u987654 -p bxyz1234_db < ../database/schema_safe_import.sql
+mysql -h bxyz123.clever-cloud.com -P 3306 -u u987654 -p bxyz1234_db < schema_safe_import.sql
 ```
 
 Verify that the tables exist:
@@ -79,16 +79,15 @@ SELECT product_code, product_name, stock_status FROM products;
 
 ## 4. Local Build & WAR Verification
 
-Before committing, verify that the Maven WAR plugin packages the backend API:
+Before committing, verify that the Maven WAR plugin packages all components:
 ```bash
-cd backend
 mvn clean package -DskipTests
 ```
 
 Verify the generated WAR:
 1. `target/ROOT.war` exists.
 2. `WEB-INF/web.xml` exists inside the WAR.
-3. Only backend classes, `WEB-INF/web.xml`, and API resources are packaged. The static frontend is not part of the WAR.
+3. Root HTML (`home.html`, `browse.html`, `product.html`, etc.), CSS, JS, and `assets/` are present.
 
 You can inspect the contents using:
 ```bash
@@ -170,7 +169,7 @@ Once Render shows **Live**:
 2. **Readiness**: `https://<YOUR-APP>.onrender.com/api/health?probe=readiness` $\rightarrow$ returns `"database":"CONNECTED"`.
 3. **Categories API**: `https://<YOUR-APP>.onrender.com/api/categories` $\rightarrow$ returns categories with product counts.
 4. **Products API**: `https://<YOUR-APP>.onrender.com/api/products` $\rightarrow$ returns paginated products.
-5. **Frontend**: Open the GitHub Pages URL. The frontend calls the Render API at `/api`; Render no longer serves the storefront HTML.
+5. **Storefront**: `https://<YOUR-APP>.onrender.com/home.html` and `browse.html` $\rightarrow$ loads showroom with live database records.
 
 ---
 
@@ -186,4 +185,4 @@ Once Render shows **Live**:
 
 ### Issue 3: Schema Validation Error on Startup
 - **Cause**: Tables or columns missing in the remote database.
-- **Solution**: Re-run [schema_safe_import.sql](../database/schema_safe_import.sql) against your remote database.
+- **Solution**: Re-run [schema_safe_import.sql](schema_safe_import.sql) against your remote database.

@@ -3,24 +3,6 @@
  * Provides role-aware navigation, active link state, user profile dropdowns, and responsive mobile menu.
  */
 (function () {
-  function pageUrl(name) {
-    const path = window.location.pathname.toLowerCase();
-    if (path.includes('/pages/') || path.includes('/admin/')) {
-      if (name === 'index.html') return '../index.html';
-      if (name.startsWith('admin-')) return `../admin/${name}`;
-      return name;
-    }
-    if (name.startsWith('admin-')) return `admin/${name}`;
-    return name === 'index.html' ? 'index.html' : `pages/${name}`;
-  }
-
-  function assetUrl(name) {
-    const path = window.location.pathname.toLowerCase();
-    return (path.includes('/pages/') || path.includes('/admin/'))
-      ? `../assets/${name}`
-      : `assets/${name}`;
-  }
-
   /**
    * Determine relative path to the Components folder based on current document location
    */
@@ -32,27 +14,28 @@
         return src.replace('navbar.js', 'navbar.html');
       }
     }
-    const path = window.location.pathname.toLowerCase();
-    return (path.includes('/pages/') || path.includes('/admin/'))
-      ? '../components/navbar.html'
-      : 'components/navbar.html';
+    return 'Components/navbar.html';
   }
 
   /**
    * Adjust relative URLs in the injected HTML according to the component base path
    */
   function adjustRelativePaths(container, basePath) {
+    const dir = basePath.substring(0, basePath.lastIndexOf('Components/'));
+    if (!dir) return; // Already at root
+
+    // If loaded from a subfolder, adjust links and asset sources
     const links = container.querySelectorAll('a[href], img[src]');
     links.forEach(el => {
       if (el.tagName === 'A') {
         const href = el.getAttribute('href');
-        if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('/')) {
-          el.setAttribute('href', pageUrl(href));
+        if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('/') && !href.startsWith(dir)) {
+          el.setAttribute('href', dir + href);
         }
       } else if (el.tagName === 'IMG') {
         const src = el.getAttribute('src');
-        if (src && !src.startsWith('http') && !src.startsWith('/')) {
-          el.setAttribute('src', assetUrl(src.replace(/^assets\//, '')));
+        if (src && !src.startsWith('http') && !src.startsWith('/') && !src.startsWith(dir)) {
+          el.setAttribute('src', dir + src);
         }
       }
     });
@@ -98,6 +81,12 @@
     if (path.includes('login.html')) return 'login';
     if (path.includes('register.html')) return 'register';
     return 'home';
+  }
+
+  function getStorefrontHomeHref() {
+    return window.location.pathname.toLowerCase().includes('/pages/')
+      ? '../index.html'
+      : 'index.html';
   }
 
   function getAuthUser() {
@@ -212,7 +201,7 @@
       <div class="mobile-nav-backdrop" id="mobile-nav-backdrop"></div>
       <div class="mobile-nav-drawer" id="mobile-nav-drawer">
         <div class="mobile-drawer-header">
-          <a href="home.html" class="store-brand" style="margin:0;">
+          <a href="${getStorefrontHomeHref()}" class="store-brand" style="margin:0;">
             <div class="brand-icon" style="width:30px; height:30px; font-size:15px;">◆</div>
             <div class="brand-name" style="font-size:15px;">
               Akshar Marbles
@@ -221,7 +210,7 @@
           <button type="button" class="mobile-drawer-close" id="mobile-drawer-close" aria-label="Close menu">✕</button>
         </div>
         <div class="mobile-drawer-links">
-          <a href="home.html" class="${isHome ? 'active' : ''}">🏠 Home</a>
+          <a href="${getStorefrontHomeHref()}" class="${isHome ? 'active' : ''}">🏠 Home</a>
           <a href="browse.html" class="${isBrowse ? 'active' : ''}">💎 Browse Collection</a>
           <a href="orders.html" class="${isOrders ? 'active' : ''}">📦 Track Orders</a>
           <a href="cart.html" class="${isCart ? 'active' : ''}">🛒 Shopping Cart (3)</a>
@@ -246,7 +235,7 @@
       const href = (link.getAttribute('href') || '').toLowerCase();
       link.classList.remove('active');
       if (
-        (activePage === 'home' && href.includes('home.html')) ||
+        (activePage === 'home' && href.includes('index.html')) ||
         ((activePage === 'browse' || activePage === 'product') && href.includes('browse.html')) ||
         (activePage === 'orders' && href.includes('orders.html'))
       ) {
@@ -333,10 +322,10 @@
       logoutBtn.addEventListener('click', function (e) {
         e.preventDefault();
         if (window.AksharAuth) {
-          window.AksharAuth.logout('home.html');
+          window.AksharAuth.logout(getStorefrontHomeHref());
         } else {
           localStorage.removeItem('akshar_auth_user');
-          window.location.href = pageUrl('index.html');
+          window.location.href = getStorefrontHomeHref();
         }
       });
     }
@@ -346,10 +335,10 @@
       mobileLogoutBtn.addEventListener('click', function (e) {
         e.preventDefault();
         if (window.AksharAuth) {
-          window.AksharAuth.logout('home.html');
+          window.AksharAuth.logout(getStorefrontHomeHref());
         } else {
           localStorage.removeItem('akshar_auth_user');
-          window.location.href = pageUrl('index.html');
+          window.location.href = getStorefrontHomeHref();
         }
       });
     }
