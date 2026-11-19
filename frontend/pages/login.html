@@ -117,6 +117,7 @@
     </div>
   </div>
 
+  <script src="../assets/js/config/api-config.js"></script>
   <script src="../components/auth.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -132,18 +133,26 @@
         });
       }
 
-      function handleLogin(email) {
+      async function handleLogin(email, password) {
         const params = new URLSearchParams(window.location.search);
         let redirectTarget = params.get('redirect');
-        
-        let destination = 'browse.html';
-        if (window.AksharAuth) {
-          destination = window.AksharAuth.login(email);
-        } else {
-          destination = email.includes('admin') ? 'admin-dashboard.html' : 'browse.html';
+
+        try {
+          if (window.AksharAuth?.loginWithDatabase) {
+            await window.AksharAuth.loginWithDatabase(email, password || 'password123');
+          } else if (window.AksharAuth) {
+            window.AksharAuth.login(email);
+          }
+        } catch (error) {
+          if (!error.status && window.AksharAuth) {
+            window.AksharAuth.login(email);
+          } else {
+            alert(error.message || 'Unable to sign in.');
+            return;
+          }
         }
 
-        window.location.href = redirectTarget || destination;
+        window.location.href = redirectTarget || 'browse.html';
       }
 
       const form = document.getElementById('client-login-form');
@@ -151,7 +160,8 @@
         form.addEventListener('submit', function (e) {
           e.preventDefault();
           const email = document.getElementById('login-email').value;
-          handleLogin(email);
+          const password = document.getElementById('login-password').value;
+          handleLogin(email, password);
         });
       }
 

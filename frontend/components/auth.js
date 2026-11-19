@@ -98,6 +98,62 @@
     }
   }
 
+  async function loginWithDatabase(email, password) {
+    if (!window.apiFetch) {
+      throw new Error('Authentication API is unavailable.');
+    }
+    const result = await window.apiFetch('/auth/login', {
+      method: 'POST',
+      body: { email, password }
+    });
+    if (!result?.success || !result.user) {
+      throw new Error(result?.message || 'Unable to sign in.');
+    }
+    setUser(result.user);
+    return result.user;
+  }
+
+  async function registerWithDatabase(details) {
+    if (!window.apiFetch) {
+      throw new Error('Authentication API is unavailable.');
+    }
+    const result = await window.apiFetch('/auth/register', {
+      method: 'POST',
+      body: details
+    });
+    if (!result?.success || !result.user) {
+      throw new Error(result?.message || 'Unable to create account.');
+    }
+    setUser(result.user);
+    return result.user;
+  }
+
+  async function loginAdminWithDatabase(email, password) {
+    if (!window.apiFetch) {
+      throw new Error('Authentication API is unavailable.');
+    }
+    const result = await window.apiFetch('/admin/auth/login', {
+      method: 'POST',
+      body: { email, password }
+    });
+    if (!result?.success || !result.user) {
+      throw new Error(result?.message || 'Unable to sign in.');
+    }
+    setUser(result.user);
+    return result.user;
+  }
+
+  async function logoutWithDatabase(redirectUrl) {
+    try {
+      if (window.apiFetch) {
+        await window.apiFetch('/auth/logout', { method: 'POST', body: {} });
+      }
+    } catch (error) {
+      console.warn('Database logout failed:', error);
+    }
+    logout(redirectUrl);
+  }
+
   function getCurrentFileName() {
     const path = window.location.pathname;
     const file = path.substring(path.lastIndexOf('/') + 1) || 'index.html';
@@ -147,6 +203,10 @@
     getUser: getUser,
     setUser: setUser,
     login: login,
+    loginWithDatabase: loginWithDatabase,
+    registerWithDatabase: registerWithDatabase,
+    loginAdminWithDatabase: loginAdminWithDatabase,
+    logoutWithDatabase: logoutWithDatabase,
     logout: logout,
     guardAdminPage: guardAdminPage,
     guardClientAuthPage: guardClientAuthPage,
