@@ -87,11 +87,12 @@
   }
 
   function isCartApiUnavailable(error) {
-    return !error || !Number.isInteger(error.status) || error.status >= 500;
+    return !error || !Number.isInteger(error.status) ||
+      error.status === 404 || error.status >= 500;
   }
 
   function addCartItem(productId, quantity) {
-    if (!window.apiFetch) {
+    if (!window.apiFetch || !resolveNumericId(productId)) {
       return Promise.resolve({});
     }
 
@@ -229,7 +230,14 @@
   function getProductId(element) {
     const productPageId = new URLSearchParams(window.location.search).get("id");
     if (document.querySelector(".product-detail-grid") && productPageId) {
-      return PRODUCTS[productPageId] ? productPageId : null;
+      if (PRODUCTS[productPageId]) {
+        return productPageId;
+      }
+      const displayedId = document.querySelector('[data-product-field="id"]')?.textContent.trim();
+      if (displayedId) {
+        return displayedId;
+      }
+      return productPageId;
     }
 
     const card = element.closest("[data-id]");
@@ -253,19 +261,54 @@
 
     if (existing) {
       existing.quantity = nextQuantity;
+      existing.product = {
+        id: product.id,
+        numericId: product.numericId || null,
+        title: product.title,
+        category: product.category,
+        origin: product.origin,
+        finish: product.finish,
+        dimensions: product.dimensions || product.tileSize,
+        price: product.price,
+        strikePrice: product.strikePrice,
+        stock: product.stock,
+        image: product.image
+      };
     } else {
-      cart.push({ id: productId, quantity: Math.min(quantity, product.stock) });
+      cart.push({
+        id: productId,
+        quantity: Math.min(quantity, product.stock),
+        product: {
+          id: product.id,
+          numericId: product.numericId || null,
+          title: product.title,
+          category: product.category,
+          origin: product.origin,
+          finish: product.finish,
+          dimensions: product.dimensions || product.tileSize,
+          price: product.price,
+          strikePrice: product.strikePrice,
+          stock: product.stock,
+          image: product.image
+        }
+      });
     }
     writeCart(cart);
   }
 
+  function getCartProduct(item) {
+    return PRODUCTS[item.id] || item.product || null;
+  }
+
   function calculateTotals(cart, promo) {
     const subtotal = cart.reduce((total, item) => {
-      const product = PRODUCTS[item.id];
+      const product = getCartProduct(item);
+      if (!product) return total;
       return total + product.price * item.quantity;
     }, 0);
     const itemSavings = cart.reduce((total, item) => {
-      const product = PRODUCTS[item.id];
+      const product = getCartProduct(item);
+      if (!product) return total;
       return total + (product.strikePrice ? product.strikePrice - product.price : 0) * item.quantity;
     }, 0);
     const promoDiscount = promo ? Math.round(subtotal * promo.rate) : 0;
@@ -299,9 +342,12 @@
       return;
     }
 
-    const cart = readCart().filter((item) => PRODUCTS[item.id]);
+    const cart = readCart().filter((item) => getCartProduct(item));
     const storedPromoCode = sessionStorage.getItem("akshar_cart_promo") || "";
-    const subtotal = cart.reduce((total, item) => total + PRODUCTS[item.id].price * item.quantity, 0);
+    const subtotal = cart.reduce((total, item) => {
+      const product = getCartProduct(item);
+      return total + (product ? product.price * item.quantity : 0);
+    }, 0);
     const promo = getPromo(storedPromoCode, subtotal);
     if (storedPromoCode && !promo) {
       sessionStorage.removeItem("akshar_cart_promo");
@@ -316,7 +362,7 @@
     const summaryItems = document.getElementById("summary-items-list");
     if (summaryItems) {
       summaryItems.innerHTML = cart.map((item) => {
-        const product = PRODUCTS[item.id];
+        const product = getCartProduct(item);
         return `<div class="summary-row"><span>${escapeHTML(product.title)} (${item.quantity} sqft)</span><b>${formatCurrency(product.price * item.quantity)}</b></div>`;
       }).join("");
     }
@@ -345,7 +391,7 @@
   }
 
   function renderCartItem(item) {
-    const product = PRODUCTS[item.id];
+    const product = getCartProduct(item);
     const lineTotal = product.price * item.quantity;
     const savings = product.strikePrice ? (product.strikePrice - product.price) * item.quantity : 0;
     const lowStock = product.stock <= 500;
@@ -408,7 +454,17 @@
       databaseCart = loadedCart;
       if (!loadedCart || !Array.isArray(loadedCart.items)) {
         renderCart();
+        setCartCount(readCart().reduce((total, item) => total + item.quantity, 0));
         return;
+      }
+      if (loadedCart.items.length === 0) {
+        const localCart = readCart();
+        if (localCart.length > 0) {
+          databaseCart = null;
+          renderCart();
+          setCartCount(localCart.reduce((total, item) => total + item.quantity, 0));
+          return;
+        }
       }
       const cart = loadedCart.items.map((item) => ({
         id: String(item.cart_item_id),
@@ -446,22 +502,24 @@
         return;
       }
 
-      const product = PRODUCTS[card.dataset.cartId];
-      if (!product) return;
       const cart = readCart();
-      const item = cart.find((entry) => entry.id === product.id);
+      const item = cart.find((entry) => entry.id === card.dataset.cartId);
+      const product = item ? getCartProduct(item) : null;
       if (!item) {
+        return;
+      }
+      if (!product) {
         return;
       }
 
       if (event.target.closest("[data-remove-item]")) {
-        writeCart(cart.filter((entry) => entry.id !== product.id));
+        writeCart(cart.filter((entry) => entry.id !== item.id));
       } else if (event.target.closest('[data-quantity-action="increase"]')) {
-        item.quantity = Math.min(item.quantity + 1, product.stock);
+        item.quantity = Math.min(item.quantity + 1, product.stock || 100000);
         writeCart(cart);
       } else if (event.target.closest('[data-quantity-action="decrease"]')) {
         if (item.quantity <= 1) {
-          writeCart(cart.filter((entry) => entry.id !== product.id));
+          writeCart(cart.filter((entry) => entry.id !== item.id));
         } else {
           item.quantity -= 1;
           writeCart(cart);
@@ -476,7 +534,10 @@
         return;
       }
       const cart = readCart();
-      const subtotal = cart.reduce((total, item) => total + PRODUCTS[item.id].price * item.quantity, 0);
+      const subtotal = cart.reduce((total, item) => {
+        const product = getCartProduct(item);
+        return total + (product ? product.price * item.quantity : 0);
+      }, 0);
       const promo = getPromo(input.value, subtotal);
       if (promo) {
         sessionStorage.setItem("akshar_cart_promo", promo.code);
@@ -520,7 +581,10 @@
         return;
       }
       const promoCode = sessionStorage.getItem("akshar_cart_promo") || "";
-      const subtotal = cart.reduce((total, item) => total + (item.unitPrice || PRODUCTS[item.id].price) * item.quantity, 0);
+      const subtotal = cart.reduce((total, item) => {
+        const product = getCartProduct(item);
+        return total + (item.unitPrice || (product ? product.price : 0)) * item.quantity;
+      }, 0);
       const checkoutTotals = databaseCart
         ? { subtotal, discount: 0, gst: Math.round(subtotal * GST_RATE), delivery: 0, total: subtotal + Math.round(subtotal * GST_RATE) }
         : calculateTotals(cart, getPromo(promoCode, subtotal));
@@ -584,14 +648,6 @@
     if (!Number.isFinite(quantity) || quantity < 1) {
       console.error("Invalid square feet quantity:", quantityText);
       addButton.setAttribute("aria-label", "Enter a valid square feet quantity");
-      return;
-    }
-
-    const product = PRODUCTS[productId];
-    const numericProductId = resolveNumericId(productId);
-    if (!numericProductId) {
-      console.error("Product has no numeric product_id:", productId);
-      addButton.setAttribute("aria-label", "Unable to identify this product");
       return;
     }
 
