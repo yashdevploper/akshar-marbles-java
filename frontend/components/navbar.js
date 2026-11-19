@@ -3,6 +3,44 @@
  * Provides role-aware navigation, active link state, user profile dropdowns, and responsive mobile menu.
  */
 (function () {
+  function resolvePageLink(pageName) {
+    if (!pageName || pageName.startsWith('http') || pageName.startsWith('#') || pageName.startsWith('mailto:')) {
+      return pageName;
+    }
+    const isPagesSubdir = window.location.pathname.toLowerCase().includes('/pages/');
+    const isAdminSubdir = window.location.pathname.toLowerCase().includes('/admin/');
+
+    // Links to home
+    if (pageName === 'index.html' || pageName === 'home.html') {
+      return isPagesSubdir || isAdminSubdir ? '../index.html' : 'index.html';
+    }
+
+    // Links to admin pages
+    if (pageName.startsWith('admin-') || pageName.startsWith('admin/')) {
+      const clean = pageName.replace(/^admin\//, '');
+      if (isAdminSubdir) return clean;
+      if (isPagesSubdir) return `../admin/${clean}`;
+      return `admin/${clean}`;
+    }
+
+    // Links to store pages (browse, cart, orders, product, login, register)
+    const clean = pageName.replace(/^pages\//, '');
+    if (isPagesSubdir) return clean;
+    if (isAdminSubdir) return `../pages/${clean}`;
+    return `pages/${clean}`;
+  }
+
+  function resolveAssetLink(assetPath) {
+    if (!assetPath || assetPath.startsWith('http') || assetPath.startsWith('data:')) {
+      return assetPath;
+    }
+    const isPagesSubdir = window.location.pathname.toLowerCase().includes('/pages/');
+    const isAdminSubdir = window.location.pathname.toLowerCase().includes('/admin/');
+    const clean = assetPath.replace(/^[./]+/, '').replace(/^assets\//i, '');
+    if (isPagesSubdir || isAdminSubdir) return `../assets/${clean}`;
+    return `assets/${clean}`;
+  }
+
   /**
    * Determine relative path to the Components folder based on current document location
    */
@@ -10,32 +48,30 @@
     const scripts = document.getElementsByTagName('script');
     for (let s of scripts) {
       const src = s.getAttribute('src') || '';
-      if (src.includes('navbar.js')) {
-        return src.replace('navbar.js', 'navbar.html');
+      if (src.toLowerCase().includes('navbar.js')) {
+        return src.replace(/navbar\.js/i, 'navbar.html');
       }
     }
-    return 'Components/navbar.html';
+    const isSubdir = window.location.pathname.toLowerCase().includes('/pages/') || 
+                     window.location.pathname.toLowerCase().includes('/admin/');
+    return isSubdir ? '../components/navbar.html' : 'components/navbar.html';
   }
 
   /**
-   * Adjust relative URLs in the injected HTML according to the component base path
+   * Adjust relative URLs in the injected HTML according to current page context
    */
-  function adjustRelativePaths(container, basePath) {
-    const dir = basePath.substring(0, basePath.lastIndexOf('Components/'));
-    if (!dir) return; // Already at root
-
-    // If loaded from a subfolder, adjust links and asset sources
+  function adjustRelativePaths(container) {
     const links = container.querySelectorAll('a[href], img[src]');
     links.forEach(el => {
       if (el.tagName === 'A') {
         const href = el.getAttribute('href');
-        if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('/') && !href.startsWith(dir)) {
-          el.setAttribute('href', dir + href);
+        if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('mailto:')) {
+          el.setAttribute('href', resolvePageLink(href));
         }
       } else if (el.tagName === 'IMG') {
         const src = el.getAttribute('src');
-        if (src && !src.startsWith('http') && !src.startsWith('/') && !src.startsWith(dir)) {
-          el.setAttribute('src', dir + src);
+        if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+          el.setAttribute('src', resolveAssetLink(src));
         }
       }
     });
@@ -63,7 +99,7 @@
       }
       const htmlText = await response.text();
       container.innerHTML = htmlText;
-      adjustRelativePaths(container, componentUrl);
+      adjustRelativePaths(container);
     } catch (err) {
       console.warn('Navbar dynamic load error (file:// protocol or network restriction):', err);
       // Graceful fallback: container remains empty or untouched without breaking the page
@@ -84,9 +120,7 @@
   }
 
   function getStorefrontHomeHref() {
-    return window.location.pathname.toLowerCase().includes('/pages/')
-      ? '../index.html'
-      : 'index.html';
+    return resolvePageLink('index.html');
   }
 
   function getAuthUser() {
@@ -104,7 +138,7 @@
   function renderAuthAction(user) {
     if (!user) {
       return `
-        <a href="login.html" class="btn-header-signin">
+        <a href="${resolvePageLink('login.html')}" class="btn-header-signin">
           <span>👤</span> Sign In
         </a>
       `;
@@ -112,12 +146,12 @@
 
     if (user.role === 'admin') {
       return `
-        <a href="admin-dashboard.html" class="btn-admin-portal-link" title="Open Admin Console">
+        <a href="${resolvePageLink('admin-dashboard.html')}" class="btn-admin-portal-link" title="Open Admin Console">
           <span>⚙</span> Admin Console
         </a>
         <div class="user-menu-wrapper" id="store-user-menu">
           <button type="button" class="user-profile-btn" id="user-menu-toggle" aria-expanded="false" aria-label="Account menu">
-            <img src="${user.avatar || 'assets/avatar-rajan.svg'}" alt="${user.name}">
+            <img src="${resolveAssetLink(user.avatar || 'assets/avatar-rajan.svg')}" alt="${user.name}">
             <span>${user.name ? user.name.split(' ')[0] : 'Admin'}</span>
             <span class="caret">▾</span>
           </button>
@@ -126,10 +160,10 @@
               <b>${user.name || 'Super Admin'}</b>
               <small>Administrator</small>
             </div>
-            <a href="admin-dashboard.html">◔ Admin Dashboard</a>
-            <a href="admin-inventory.html">▱ Inventory Management</a>
-            <a href="admin-logistics.html">▣ Logistics &amp; Orders</a>
-            <a href="browse.html">💎 Browse Collection</a>
+            <a href="${resolvePageLink('admin-dashboard.html')}">◔ Admin Dashboard</a>
+            <a href="${resolvePageLink('admin-inventory.html')}">▱ Inventory Management</a>
+            <a href="${resolvePageLink('admin-logistics.html')}">▣ Logistics &amp; Orders</a>
+            <a href="${resolvePageLink('browse.html')}">💎 Browse Collection</a>
             <div class="dropdown-divider"></div>
             <button type="button" id="header-logout-btn" class="dropdown-logout-btn">
               🚪 Sign Out
@@ -144,7 +178,7 @@
     return `
       <div class="user-menu-wrapper" id="store-user-menu">
         <button type="button" class="user-profile-btn" id="user-menu-toggle" aria-expanded="false" aria-label="Account menu">
-          <img src="${user.avatar || 'assets/avatar-ananya.svg'}" alt="${user.name}">
+          <img src="${resolveAssetLink(user.avatar || 'assets/avatar-ananya.svg')}" alt="${user.name}">
           <span>${firstName}</span>
           <span class="caret">▾</span>
         </button>
@@ -153,11 +187,11 @@
             <b>${user.name || 'Ananya Sharma'}</b>
             <small>${user.tier || 'VIP Gold Member'}</small>
           </div>
-          <a href="orders.html">📦 My Orders (#ORD-7820)</a>
-          <a href="cart.html">🛒 Shopping Cart (3 items)</a>
-          <a href="browse.html">💎 Browse Collection</a>
+          <a href="${resolvePageLink('orders.html')}">📦 My Orders (#ORD-7820)</a>
+          <a href="${resolvePageLink('cart.html')}">🛒 Shopping Cart (3 items)</a>
+          <a href="${resolvePageLink('browse.html')}">💎 Browse Collection</a>
           <div class="dropdown-divider"></div>
-          <a href="admin-login.html" class="admin-switch-link" style="color:var(--m); font-size:12px;">
+          <a href="${resolvePageLink('admin-login.html')}" class="admin-switch-link" style="color:var(--m); font-size:12px;">
             ⚙ Admin Portal
           </a>
           <button type="button" id="header-logout-btn" class="dropdown-logout-btn">
@@ -181,17 +215,17 @@
           <b>${user.name}</b>
           <small>${user.role === 'admin' ? 'Administrator' : (user.tier || 'Customer')}</small>
         </div>
-        ${user.role === 'admin' ? '<a href="admin-dashboard.html" style="font-weight:600; color:var(--g);">⚙ Admin Dashboard</a>' : ''}
+        ${user.role === 'admin' ? `<a href="${resolvePageLink('admin-dashboard.html')}" style="font-weight:600; color:var(--g);">⚙ Admin Dashboard</a>` : ''}
         <button type="button" id="mobile-logout-btn" class="dropdown-logout-btn" style="padding:10px 0; border:0; background:transparent; font-size:14px; cursor:pointer; text-align:left;">
           🚪 Sign Out
         </button>
       `;
     } else {
       authSection = `
-        <a href="login.html" class="btn-header-signin" style="justify-content:center; width:100%;">
+        <a href="${resolvePageLink('login.html')}" class="btn-header-signin" style="justify-content:center; width:100%;">
           <span>👤</span> Sign In
         </a>
-        <a href="admin-login.html" style="font-size:12px; color:var(--m); text-align:center; padding:6px 0;">
+        <a href="${resolvePageLink('admin-login.html')}" style="font-size:12px; color:var(--m); text-align:center; padding:6px 0;">
           Administrator Sign In →
         </a>
       `;
@@ -211,9 +245,9 @@
         </div>
         <div class="mobile-drawer-links">
           <a href="${getStorefrontHomeHref()}" class="${isHome ? 'active' : ''}">🏠 Home</a>
-          <a href="browse.html" class="${isBrowse ? 'active' : ''}">💎 Browse Collection</a>
-          <a href="orders.html" class="${isOrders ? 'active' : ''}">📦 Track Orders</a>
-          <a href="cart.html" class="${isCart ? 'active' : ''}">🛒 Shopping Cart (3)</a>
+          <a href="${resolvePageLink('browse.html')}" class="${isBrowse ? 'active' : ''}">💎 Browse Collection</a>
+          <a href="${resolvePageLink('orders.html')}" class="${isOrders ? 'active' : ''}">📦 Track Orders</a>
+          <a href="${resolvePageLink('cart.html')}" class="${isCart ? 'active' : ''}">🛒 Shopping Cart (3)</a>
         </div>
         <div class="mobile-drawer-auth">
           ${authSection}

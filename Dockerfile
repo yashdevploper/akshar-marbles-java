@@ -27,6 +27,8 @@ COPY frontend/components ./Components
 COPY frontend/components ./components
 COPY frontend/index.html ./home.html
 COPY frontend/index.html ./index.html
+COPY frontend/pages ./pages
+COPY frontend/admin ./admin
 COPY frontend/pages/*.html ./
 COPY frontend/admin/*.html ./
 COPY frontend/assets/js/pages/*.js ./
