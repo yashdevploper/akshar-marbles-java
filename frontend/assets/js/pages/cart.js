@@ -31,10 +31,14 @@
 
   function getCartIdentifier() {
     const user = getUser();
-    const numericCustomerId = Number(user?.id);
-    return Number.isInteger(numericCustomerId) && numericCustomerId > 0
-      ? { customer_id: numericCustomerId }
-      : { session_token: getGuestSessionToken() };
+    if (user && user.id) {
+      const numericCustomerId = Number(user.id);
+      if (Number.isInteger(numericCustomerId) && numericCustomerId > 0) {
+        return { customer_id: numericCustomerId, session_token: `user_${user.id}` };
+      }
+      return { session_token: `user_${user.id}` };
+    }
+    return { session_token: getGuestSessionToken() };
   }
 
   async function loadDatabaseCart() {
@@ -44,7 +48,27 @@
     const identifier = getCartIdentifier();
     const params = new URLSearchParams(identifier).toString();
     try {
-      return await window.apiFetch(`/cart?${params}`);
+      let cart = await window.apiFetch(`/cart?${params}`);
+      const user = getUser();
+      // If user is logged in but cart has 0 items, check if any items were added as guest
+      if (user && user.id && (!cart || !Array.isArray(cart.items) || cart.items.length === 0)) {
+        const guestToken = localStorage.getItem(GUEST_SESSION_KEY);
+        if (guestToken && guestToken !== `user_${user.id}`) {
+          try {
+            const guestCart = await window.apiFetch(`/cart?session_token=${encodeURIComponent(guestToken)}`);
+            if (guestCart && Array.isArray(guestCart.items) && guestCart.items.length > 0) {
+              for (const item of guestCart.items) {
+                await addDatabaseCartItem(item.product_id, item.quantity);
+              }
+              localStorage.removeItem(GUEST_SESSION_KEY);
+              cart = await window.apiFetch(`/cart?${params}`);
+            }
+          } catch (migrateErr) {
+            console.warn("Guest cart migration error:", migrateErr);
+          }
+        }
+      }
+      return cart;
     } catch (error) {
       console.error("Unable to load cart from database:", error);
       return null;
@@ -117,7 +141,15 @@
 
   function readCart() {
     try {
-      const data = localStorage.getItem(getStorageKey());
+      let data = localStorage.getItem(getStorageKey());
+      if ((!data || data === "[]") && getUser()) {
+        const guestData = localStorage.getItem(`${CART_PREFIX}guest`);
+        if (guestData && guestData !== "[]") {
+          data = guestData;
+          localStorage.setItem(getStorageKey(), guestData);
+          localStorage.removeItem(`${CART_PREFIX}guest`);
+        }
+      }
       const cart = data ? JSON.parse(data) : [];
       return Array.isArray(cart) ? cart : [];
     } catch (error) {
@@ -206,13 +238,19 @@
         `<div class="summary-row"><span>${escapeHTML(item.name)} (${item.quantity} sqft)</span><b>${formatCurrency(item.unitPrice * item.quantity)}</b></div>`
       ).join("");
     }
-    const gst = Math.round(subtotal * GST_RATE);
+    const storedPromoCode = sessionStorage.getItem("akshar_cart_promo") || "";
+    const promo = getPromo(storedPromoCode, subtotal);
+    const discount = promo ? Math.round(subtotal * promo.rate) : 0;
+    const taxableTotal = Math.max(0, subtotal - discount);
+    const gst = Math.round(taxableTotal * GST_RATE);
+    const total = taxableTotal + gst;
+
     setText("cart-page-meta", `${cart.reduce((total, item) => total + item.quantity, 0)} items · Estimated delivery unavailable`);
     setText("summary-subtotal", formatCurrency(subtotal));
-    setText("summary-discount", "− ₹0");
+    setText("summary-discount", `− ${formatCurrency(discount)}`);
     setText("summary-gst", formatCurrency(gst));
     setText("summary-delivery", "FREE");
-    setText("summary-total", formatCurrency(subtotal + gst));
+    setText("summary-total", formatCurrency(total));
     setText("delivery-estimate", "Estimated delivery unavailable");
     setText("delivery-address", getUser()?.address || "Delivery address not saved");
     setCheckoutEnabled(true);
@@ -586,13 +624,18 @@
       }));
     });
 
-    window.addEventListener("akshar:cart-change", renderCart);
-    renderCart();
+    window.addEventListener("akshar:cart-change", () => {
+      if (!databaseCart) renderCart();
+    });
   }
 
   function normalizeImagePath(path) {
     if (!path) return "../assets/front-images/placeholder.png";
-    return `../${String(path).replace(/^assets[\\/]/i, "").replace(/^Front-images[\\/]/i, "front-images/")}`;
+    let p = String(path).replace(/^[\\/]+/, "");
+    if (!p.toLowerCase().startsWith("assets/")) {
+      p = `assets/${p}`;
+    }
+    return `../${p}`;
   }
 
   function refreshDatabaseCart() {

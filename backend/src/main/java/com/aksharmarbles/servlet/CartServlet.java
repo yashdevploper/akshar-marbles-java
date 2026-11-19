@@ -29,15 +29,15 @@ public class CartServlet extends BaseServlet {
     public static class CartRequest {
         private Object product_id;
         private Integer quantity;
-        private Long customer_id;
+        private Object customer_id;
         private String session_token;
 
         public Object getProduct_id() { return product_id; }
         public void setProduct_id(Object product_id) { this.product_id = product_id; }
         public Integer getQuantity() { return quantity; }
         public void setQuantity(Integer quantity) { this.quantity = quantity; }
-        public Long getCustomer_id() { return customer_id; }
-        public void setCustomer_id(Long customer_id) { this.customer_id = customer_id; }
+        public Object getCustomer_id() { return customer_id; }
+        public void setCustomer_id(Object customer_id) { this.customer_id = customer_id; }
         public String getSession_token() { return session_token; }
         public void setSession_token(String session_token) { this.session_token = session_token; }
     }
@@ -64,8 +64,15 @@ public class CartServlet extends BaseServlet {
 
         try (Session session = HibernateUtil.openSession()) {
             Transaction tx = session.beginTransaction();
-            Cart cart = findCart(session, remove ? parseOptionalLong(req.getParameter("customer_id")) : body.getCustomer_id(),
-                    remove ? req.getParameter("session_token") : body.getSession_token());
+            Long customerId = remove ? parseOptionalLong(req.getParameter("customer_id")) : resolveCustomerId(body.getCustomer_id());
+            String sessionToken = remove ? req.getParameter("session_token") : body.getSession_token();
+            if (sessionToken == null || sessionToken.trim().isEmpty()) {
+                String raw = remove ? req.getParameter("customer_id") : (body.getCustomer_id() != null ? body.getCustomer_id().toString() : null);
+                if (raw != null && !raw.trim().isEmpty() && customerId == null) {
+                    sessionToken = raw.trim().startsWith("user_") ? raw.trim() : "user_" + raw.trim();
+                }
+            }
+            Cart cart = findCart(session, customerId, sessionToken);
             if (cart == null) {
                 tx.rollback();
                 sendJson(resp, 404, failure("Cart not found."));
@@ -155,24 +162,37 @@ public class CartServlet extends BaseServlet {
                 return;
             }
 
-            Cart cart = findCart(session, body.getCustomer_id(), body.getSession_token());
+            Long customerId = resolveCustomerId(body.getCustomer_id());
+            String sessionToken = body.getSession_token();
+            if (sessionToken == null || sessionToken.trim().isEmpty()) {
+                if (body.getCustomer_id() != null && customerId == null) {
+                    String raw = body.getCustomer_id().toString().trim();
+                    if (!raw.isEmpty()) {
+                        sessionToken = raw.startsWith("user_") ? raw : "user_" + raw;
+                    }
+                }
+            }
+
+            Cart cart = findCart(session, customerId, sessionToken);
             if (cart == null) {
                 cart = new Cart();
-                if (body.getCustomer_id() != null) {
-                    Customer customer = session.get(Customer.class, body.getCustomer_id());
+                if (customerId != null) {
+                    Customer customer = session.get(Customer.class, customerId);
                     if (customer == null) {
-                        sendJson(resp, 400, failure("Customer not found."));
-                        tx.rollback();
-                        return;
+                        if (sessionToken == null || sessionToken.trim().isEmpty()) {
+                            sessionToken = "user_" + customerId;
+                        }
+                        cart.setSessionToken(sessionToken.trim());
+                    } else {
+                        cart.setCustomer(customer);
                     }
-                    cart.setCustomer(customer);
                 } else {
-                    if (body.getSession_token() == null || body.getSession_token().trim().isEmpty()) {
+                    if (sessionToken == null || sessionToken.trim().isEmpty()) {
                         sendJson(resp, 400, failure("A session_token is required for guest carts."));
                         tx.rollback();
                         return;
                     }
-                    cart.setSessionToken(body.getSession_token().trim());
+                    cart.setSessionToken(sessionToken.trim());
                 }
                 session.persist(cart);
                 session.flush();
@@ -204,6 +224,12 @@ public class CartServlet extends BaseServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Long customerId = parseOptionalLong(req.getParameter("customer_id"));
         String sessionToken = req.getParameter("session_token");
+        if ((sessionToken == null || sessionToken.trim().isEmpty()) && req.getParameter("customer_id") != null) {
+            String rawCustomer = req.getParameter("customer_id").trim();
+            if (customerId == null && !rawCustomer.isEmpty()) {
+                sessionToken = rawCustomer.startsWith("user_") ? rawCustomer : "user_" + rawCustomer;
+            }
+        }
 
         try (Session session = HibernateUtil.openSession()) {
             Cart cart = findCart(session, customerId, sessionToken);
@@ -244,12 +270,26 @@ public class CartServlet extends BaseServlet {
         if (customerId != null) {
             Query<Cart> query = session.createQuery(
                     "from Cart c where c.customer.customerId = :customerId", Cart.class);
-            return query.setParameter("customerId", customerId).setMaxResults(1).uniqueResult();
+            Cart cart = query.setParameter("customerId", customerId).setMaxResults(1).uniqueResult();
+            if (cart != null) {
+                return cart;
+            }
         }
         if (sessionToken != null && !sessionToken.trim().isEmpty()) {
             Query<Cart> query = session.createQuery(
                     "from Cart c where c.sessionToken = :sessionToken", Cart.class);
-            return query.setParameter("sessionToken", sessionToken.trim()).setMaxResults(1).uniqueResult();
+            Cart cart = query.setParameter("sessionToken", sessionToken.trim()).setMaxResults(1).uniqueResult();
+            if (cart != null) {
+                return cart;
+            }
+            // If passed with or without user_ prefix, check alternate
+            String alt = sessionToken.trim().startsWith("user_")
+                    ? sessionToken.trim().substring(5)
+                    : "user_" + sessionToken.trim();
+            Cart altCart = query.setParameter("sessionToken", alt).setMaxResults(1).uniqueResult();
+            if (altCart != null) {
+                return altCart;
+            }
         }
         return null;
     }
@@ -286,6 +326,16 @@ public class CartServlet extends BaseServlet {
         response.put("success", false);
         response.put("message", message);
         return response;
+    }
+
+    private Long resolveCustomerId(Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        if (raw instanceof Number number) {
+            return number.longValue();
+        }
+        return parseOptionalLong(raw.toString());
     }
 
     private Long resolveProductId(Session session, Object rawId) {

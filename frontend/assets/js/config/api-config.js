@@ -16,7 +16,7 @@
       // If running on local dev server (e.g. Live Server on 5500, Vite 5173, etc. or file://)
       const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       if (window.location.protocol === 'file:' || (isLocal && window.location.port !== '8080' && window.location.port !== '')) {
-        return 'http://localhost:8080/api';
+        return 'https://akshar-marbles-java.onrender.com/api';
       }
     }
     return '/api';
