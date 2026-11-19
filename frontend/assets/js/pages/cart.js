@@ -86,6 +86,23 @@
     });
   }
 
+  function isCartApiUnavailable(error) {
+    return !error || !Number.isInteger(error.status) || error.status >= 500;
+  }
+
+  function addCartItem(productId, quantity) {
+    if (!window.apiFetch) {
+      return Promise.resolve({});
+    }
+
+    return addDatabaseCartItem(productId, quantity).catch((error) => {
+      if (!isCartApiUnavailable(error)) {
+        throw error;
+      }
+      return {};
+    });
+  }
+
   async function updateDatabaseCartItem(productId, quantity) {
     const numId = resolveNumericId(productId);
     return await window.apiFetch(`/cart/items/${encodeURIComponent(numId)}`, {
@@ -590,10 +607,10 @@
       addButton.textContent = "Adding...";
     }
 
-    addDatabaseCartItem(numericProductId, quantity)
+    addCartItem(productId, quantity)
       .then((result) => {
         addProduct(productId, quantity);
-        setCartCount(result.cartCount || 0);
+        setCartCount(result.cartCount || readCart().reduce((total, item) => total + item.quantity, 0));
         if (addButton.querySelector("span")) {
           addButton.innerHTML = originalText.replace(/Add to Cart/, "Added to Cart");
         } else {
