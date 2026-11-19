@@ -27,13 +27,13 @@ public class CartServlet extends BaseServlet {
     private static final int MAX_QUANTITY = 100000;
 
     public static class CartRequest {
-        private Long product_id;
+        private Object product_id;
         private Integer quantity;
         private Long customer_id;
         private String session_token;
 
-        public Long getProduct_id() { return product_id; }
-        public void setProduct_id(Long product_id) { this.product_id = product_id; }
+        public Object getProduct_id() { return product_id; }
+        public void setProduct_id(Object product_id) { this.product_id = product_id; }
         public Integer getQuantity() { return quantity; }
         public void setQuantity(Integer quantity) { this.quantity = quantity; }
         public Long getCustomer_id() { return customer_id; }
@@ -96,7 +96,13 @@ public class CartServlet extends BaseServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        CartRequest body = readJson(req, CartRequest.class);
+        CartRequest body;
+        try {
+            body = readJson(req, CartRequest.class);
+        } catch (Exception e) {
+            sendJson(resp, 400, failure("Invalid JSON payload."));
+            return;
+        }
         Transaction tx = null;
 
         try (Session session = HibernateUtil.openSession()) {
@@ -113,7 +119,14 @@ public class CartServlet extends BaseServlet {
                 return;
             }
 
-            Product product = session.get(Product.class, body.getProduct_id());
+            Long resolvedProductId = resolveProductId(session, body.getProduct_id());
+            if (resolvedProductId == null) {
+                sendJson(resp, 404, failure("Product not found."));
+                tx.rollback();
+                return;
+            }
+
+            Product product = session.get(Product.class, resolvedProductId);
             if (product == null) {
                 sendJson(resp, 404, failure("Product not found."));
                 tx.rollback();
@@ -133,7 +146,7 @@ public class CartServlet extends BaseServlet {
             ProductPrice price = session.createQuery(
                     "from ProductPrice pp where pp.product.productId = :productId " +
                     "order by pp.effectiveFrom desc, pp.priceId desc", ProductPrice.class)
-                    .setParameter("productId", body.getProduct_id())
+                    .setParameter("productId", resolvedProductId)
                     .setMaxResults(1)
                     .uniqueResult();
             if (price == null) {
@@ -170,7 +183,7 @@ public class CartServlet extends BaseServlet {
                     "VALUES (?, ?, ?, ?) " +
                     "ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity), unit_price = VALUES(unit_price)");
             upsert.setParameter(1, cart.getCartId());
-            upsert.setParameter(2, body.getProduct_id());
+            upsert.setParameter(2, resolvedProductId);
             upsert.setParameter(3, body.getQuantity());
             upsert.setParameter(4, price.getCurrentPrice());
             upsert.executeUpdate();
@@ -273,6 +286,38 @@ public class CartServlet extends BaseServlet {
         response.put("success", false);
         response.put("message", message);
         return response;
+    }
+
+    private Long resolveProductId(Session session, Object rawId) {
+        if (rawId == null) {
+            return null;
+        }
+        if (rawId instanceof Number number) {
+            return number.longValue();
+        }
+        String str = rawId.toString().trim();
+        if (str.isEmpty()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(str);
+        } catch (NumberFormatException e) {
+            Product prod = session.createQuery(
+                    "from Product p where p.productCode = :code", Product.class)
+                    .setParameter("code", str)
+                    .setMaxResults(1)
+                    .uniqueResult();
+            if (prod != null) {
+                return prod.getProductId();
+            }
+            String digits = str.replaceAll("[^0-9]", "");
+            if (!digits.isEmpty()) {
+                try {
+                    return Long.parseLong(digits);
+                } catch (NumberFormatException ignored) {}
+            }
+            return null;
+        }
     }
 
     private Long parseOptionalLong(String value) {

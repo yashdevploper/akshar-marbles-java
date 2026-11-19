@@ -76,7 +76,7 @@
     }
     const numId = resolveNumericId(productId);
     const body = {
-      product_id: numId,
+      product_id: numId !== null && numId !== undefined ? numId : productId,
       quantity: Number(quantity),
       ...getCartIdentifier()
     };
@@ -86,22 +86,13 @@
     });
   }
 
-  function isCartApiUnavailable(error) {
-    return !error || !Number.isInteger(error.status) ||
-      error.status === 404 || error.status >= 500;
-  }
-
   function addCartItem(productId, quantity) {
-    if (!window.apiFetch || !resolveNumericId(productId)) {
+    const resolvedId = resolveNumericId(productId) || productId;
+    if (!window.apiFetch || !resolvedId) {
       return Promise.resolve({});
     }
 
-    return addDatabaseCartItem(productId, quantity).catch((error) => {
-      if (!isCartApiUnavailable(error)) {
-        throw error;
-      }
-      return {};
-    });
+    return addDatabaseCartItem(resolvedId, quantity);
   }
 
   async function updateDatabaseCartItem(productId, quantity) {
