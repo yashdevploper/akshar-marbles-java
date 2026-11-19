@@ -703,6 +703,9 @@ body {
   .cart-btn-round {
     display: none !important;
   }
+  .btn-admin-portal-link {
+    display: none !important;
+  }
   .store-header {
     height: 64px;
     padding: 0 16px;
