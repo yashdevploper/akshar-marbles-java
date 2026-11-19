@@ -21,19 +21,19 @@ public class CorsFilter implements Filter {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
         String origin = httpRequest.getHeader("Origin");
         String configuredOrigin = AppConfig.get("cors.allowedOrigin");
+        String allowed = (configuredOrigin != null && !configuredOrigin.trim().isEmpty())
+                ? configuredOrigin.trim()
+                : "*";
 
-        if (origin != null && (configuredOrigin == null || configuredOrigin.trim().isEmpty()
-                || "*".equals(configuredOrigin.trim()) || configuredOrigin.trim().equalsIgnoreCase(origin))) {
-            httpResponse.setHeader("Access-Control-Allow-Origin",
-                    "*".equals(configuredOrigin.trim()) ? "*" : origin);
-            httpResponse.setHeader("Vary", "Origin");
+        if (origin != null && !origin.trim().isEmpty()) {
+            boolean allowAll = "*".equals(allowed);
+            if (allowAll || allowed.equalsIgnoreCase(origin.trim())) {
+                httpResponse.setHeader("Access-Control-Allow-Origin", origin.trim());
+                httpResponse.setHeader("Vary", "Origin");
+                httpResponse.setHeader("Access-Control-Allow-Credentials", "true");
+            }
         }
-        if (origin != null && (configuredOrigin == null || configuredOrigin.trim().isEmpty()
-                || "*".equals(configuredOrigin.trim()) || configuredOrigin.trim().equalsIgnoreCase(origin))) {
-            httpResponse.setHeader("Access-Control-Allow-Credentials",
-                    "*".equals(configuredOrigin == null ? "" : configuredOrigin.trim()) ? "false" : "true");
-        }
-        httpResponse.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+        httpResponse.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         httpResponse.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, X-CSRF-Token");
 
         if ("OPTIONS".equalsIgnoreCase(httpRequest.getMethod())) {
