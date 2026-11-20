@@ -19,14 +19,14 @@
     if (pageName.startsWith('admin-') || pageName.startsWith('admin/')) {
       const clean = pageName.replace(/^admin\//, '');
       if (isAdminSubdir) return clean;
-      if (isPagesSubdir) return `../admin/${clean}`;
+      if (isPagesSubdir) return `../${clean}`;
       return `admin/${clean}`;
     }
 
     // Links to store pages (browse, cart, orders, product, login, register)
     const clean = pageName.replace(/^pages\//, '');
     if (isPagesSubdir) return clean;
-    if (isAdminSubdir) return `../pages/${clean}`;
+    if (isAdminSubdir) return `/${clean}`;
     return `pages/${clean}`;
   }
 
