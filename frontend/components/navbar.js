@@ -7,27 +7,21 @@
     if (!pageName || pageName.startsWith('http') || pageName.startsWith('#') || pageName.startsWith('mailto:')) {
       return pageName;
     }
-    const isPagesSubdir = window.location.pathname.toLowerCase().includes('/pages/');
-    const isAdminSubdir = window.location.pathname.toLowerCase().includes('/admin/');
 
-    // Links to home
+    // Home
     if (pageName === 'index.html' || pageName === 'home.html') {
-      return isPagesSubdir || isAdminSubdir ? '../index.html' : 'index.html';
+      return '/';
     }
 
-    // Links to admin pages
+    // Admin pages
     if (pageName.startsWith('admin-') || pageName.startsWith('admin/')) {
       const clean = pageName.replace(/^admin\//, '');
-      if (isAdminSubdir) return clean;
-      if (isPagesSubdir) return `../${clean}`;
-      return `admin/${clean}`;
+      return `/admin/${clean}`;
     }
 
-    // Links to store pages (browse, cart, orders, product, login, register)
-    const clean = pageName.replace(/^pages\//, '');
-    if (isPagesSubdir) return clean;
-    if (isAdminSubdir) return `/${clean}`;
-    return `pages/${clean}`;
+    // Store pages (browse, cart, orders, product, login, register)
+    const clean = pageName.replace(/^\/?(pages\/)?/, '');
+    return `/${clean}`;
   }
 
   function resolveAssetLink(assetPath) {
@@ -52,7 +46,7 @@
         return src.replace(/navbar\.js/i, 'navbar.html');
       }
     }
-    const isSubdir = window.location.pathname.toLowerCase().includes('/pages/') || 
+    const isSubdir = window.location.pathname.toLowerCase().includes('/pages/') ||
                      window.location.pathname.toLowerCase().includes('/admin/');
     return isSubdir ? '../components/navbar.html' : 'components/navbar.html';
   }
@@ -108,6 +102,7 @@
     // Initialize navbar listeners, active states, auth dropdowns
     initNavbar();
   }
+
   function detectCurrentPage() {
     const path = window.location.pathname.toLowerCase();
     if (path.includes('browse.html')) return 'browse';
@@ -268,8 +263,9 @@
     navLinks.forEach((link) => {
       const href = (link.getAttribute('href') || '').toLowerCase();
       link.classList.remove('active');
+      const isHomeLink = href === '/' || href.includes('index.html');
       if (
-        (activePage === 'home' && href.includes('index.html')) ||
+        (activePage === 'home' && isHomeLink) ||
         ((activePage === 'browse' || activePage === 'product') && href.includes('browse.html')) ||
         (activePage === 'orders' && href.includes('orders.html'))
       ) {
@@ -296,7 +292,7 @@
         // Remove existing auth elements (if any were duplicated)
         actionsContainer.querySelectorAll('.btn-header-signin, .user-profile-btn, .user-menu-wrapper, .btn-admin-portal-link').forEach(el => el.remove());
       }
-      
+
       // Append the dynamic auth element
       const authWrap = document.createElement('div');
       authWrap.style.display = 'inline-flex';
