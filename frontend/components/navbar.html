@@ -1,44 +1,439 @@
-<!-- Standard Client Navigation Bar Component for Akshar Marbles -->
-<header class="store-header">
-  <a href="index.html" class="store-brand">
-    <div class="brand-icon">◆</div>
-    <div class="brand-name">
-      Akshar Marbles
-      <small>PREMIUM SHOWROOM</small>
-    </div>
-  </a>
+/**
+ * Unified Client Navigation Bar Component for Akshar Marbles
+ * Provides role-aware navigation, active link state, user profile dropdowns, and responsive mobile menu.
+ */
+(function () {
+  function resolvePageLink(pageName) {
+    if (!pageName || pageName.startsWith('http') || pageName.startsWith('#') || pageName.startsWith('mailto:')) {
+      return pageName;
+    }
 
-  <nav class="store-nav">
-    <a href="index.html" class="nav-link-home">Home</a>
-    <a href="browse.html" class="nav-link-browse">Browse</a>
-    <a href="orders.html" class="nav-link-orders">Orders</a>
-  </nav>
+    // Home
+    if (pageName === 'index.html' || pageName === 'home.html') {
+      return '/';
+    }
 
-  <div class="store-header-actions">
-    <a href="cart.html" class="header-btn cart-btn-round" title="Cart">
-      <svg
-        viewBox="0 0 24 24"
-        width="16"
-        height="16"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <circle cx="9" cy="21" r="1" />
-        <circle cx="20" cy="21" r="1" />
-        <path
-          d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
-        />
-      </svg>
-    </a>
-    <a href="login.html" class="btn-header-signin"> <span>👤</span> Sign In </a>
-    <button
-      type="button"
-      class="mobile-nav-toggle"
-      id="mobile-nav-toggle"
-      aria-label="Toggle navigation"
-    >
-      <span></span><span></span><span></span>
-    </button>
-  </div>
-</header>
+    // Admin pages
+    if (pageName.startsWith('admin-') || pageName.startsWith('admin/')) {
+      const clean = pageName.replace(/^admin\//, '');
+      return `/admin/${clean}`;
+    }
+
+    // Store pages (browse, cart, orders, product, login, register)
+    const clean = pageName.replace(/^\/?(pages\/)?/, '');
+    return `/${clean}`;
+  }
+
+  function resolveAssetLink(assetPath) {
+    if (!assetPath || assetPath.startsWith('http') || assetPath.startsWith('data:')) {
+      return assetPath;
+    }
+    const isPagesSubdir = window.location.pathname.toLowerCase().includes('/pages/');
+    const isAdminSubdir = window.location.pathname.toLowerCase().includes('/admin/');
+    const clean = assetPath.replace(/^[./]+/, '').replace(/^assets\//i, '');
+    if (isPagesSubdir || isAdminSubdir) return `../assets/${clean}`;
+    return `assets/${clean}`;
+  }
+
+  /**
+   * Determine relative path to the Components folder based on current document location
+   */
+  function getComponentPath() {
+    const scripts = document.getElementsByTagName('script');
+    for (let s of scripts) {
+      const src = s.getAttribute('src') || '';
+      if (src.toLowerCase().includes('navbar.js')) {
+        return src.replace(/navbar\.js/i, 'navbar.html');
+      }
+    }
+    const isSubdir = window.location.pathname.toLowerCase().includes('/pages/') ||
+                     window.location.pathname.toLowerCase().includes('/admin/');
+    return isSubdir ? '../components/navbar.html' : 'components/navbar.html';
+  }
+
+  /**
+   * Adjust relative URLs in the injected HTML according to current page context
+   */
+  function adjustRelativePaths(container) {
+    const links = container.querySelectorAll('a[href], img[src]');
+    links.forEach(el => {
+      if (el.tagName === 'A') {
+        const href = el.getAttribute('href');
+        if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('mailto:')) {
+          el.setAttribute('href', resolvePageLink(href));
+        }
+      } else if (el.tagName === 'IMG') {
+        const src = el.getAttribute('src');
+        if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+          el.setAttribute('src', resolveAssetLink(src));
+        }
+      }
+    });
+  }
+
+  /**
+   * Load and inject the centralized navbar HTML
+   */
+  async function loadNavbar() {
+    const container = document.getElementById('site-navbar');
+    if (!container) {
+      // If there's an existing static store-header, initialize it directly
+      if (document.querySelector('.store-header')) {
+        initNavbar();
+      }
+      return;
+    }
+
+    const componentUrl = getComponentPath();
+
+    try {
+      const response = await fetch(componentUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to load navbar HTML: status ${response.status}`);
+      }
+      const htmlText = await response.text();
+      container.innerHTML = htmlText;
+      adjustRelativePaths(container);
+    } catch (err) {
+      console.warn('Navbar dynamic load error (file:// protocol or network restriction):', err);
+      // Graceful fallback: container remains empty or untouched without breaking the page
+    }
+
+    // Initialize navbar listeners, active states, auth dropdowns
+    initNavbar();
+  }
+
+  function detectCurrentPage() {
+    const path = window.location.pathname.toLowerCase();
+    if (path.includes('browse.html')) return 'browse';
+    if (path.includes('product.html')) return 'product';
+    if (path.includes('orders.html')) return 'orders';
+    if (path.includes('cart.html')) return 'cart';
+    if (path.includes('login.html')) return 'login';
+    if (path.includes('register.html')) return 'register';
+    return 'home';
+  }
+
+  function getStorefrontHomeHref() {
+    return resolvePageLink('index.html');
+  }
+
+  function getAuthUser() {
+    if (window.AksharAuth && typeof window.AksharAuth.getUser === 'function') {
+      return window.AksharAuth.getUser();
+    }
+    try {
+      const data = localStorage.getItem('akshar_auth_user');
+      return data ? JSON.parse(data) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function renderAuthAction(user) {
+    if (!user) {
+      return `
+        <a href="${resolvePageLink('login.html')}" class="btn-header-signin">
+          <span>👤</span> Sign In
+        </a>
+      `;
+    }
+
+    if (user.role === 'admin') {
+      return `
+        <a href="${resolvePageLink('admin-dashboard.html')}" class="btn-admin-portal-link" title="Open Admin Console">
+          <span>⚙</span> Admin Console
+        </a>
+        <div class="user-menu-wrapper" id="store-user-menu">
+          <button type="button" class="user-profile-btn" id="user-menu-toggle" aria-expanded="false" aria-label="Account menu">
+            <img src="${resolveAssetLink(user.avatar || 'assets/avatar-rajan.svg')}" alt="${user.name}">
+            <span>${user.name ? user.name.split(' ')[0] : 'Admin'}</span>
+            <span class="caret">▾</span>
+          </button>
+          <div class="user-dropdown-menu" id="user-menu-dropdown">
+            <div class="user-dropdown-header">
+              <b>${user.name || 'Super Admin'}</b>
+              <small>Administrator</small>
+            </div>
+            <a href="${resolvePageLink('admin-dashboard.html')}">◔ Admin Dashboard</a>
+            <a href="${resolvePageLink('admin-inventory.html')}">▱ Inventory Management</a>
+            <a href="${resolvePageLink('admin-logistics.html')}">▣ Logistics &amp; Orders</a>
+            <a href="${resolvePageLink('browse.html')}">💎 Browse Collection</a>
+            <div class="dropdown-divider"></div>
+            <button type="button" id="header-logout-btn" class="dropdown-logout-btn">
+              🚪 Sign Out
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Default Client User
+    const firstName = user.name ? user.name.split(' ')[0] : 'Customer';
+    return `
+      <div class="user-menu-wrapper" id="store-user-menu">
+        <button type="button" class="user-profile-btn" id="user-menu-toggle" aria-expanded="false" aria-label="Account menu">
+          <img src="${resolveAssetLink(user.avatar || 'assets/avatar-ananya.svg')}" alt="${user.name}">
+          <span>${firstName}</span>
+          <span class="caret">▾</span>
+        </button>
+        <div class="user-dropdown-menu" id="user-menu-dropdown">
+          <div class="user-dropdown-header">
+            <b>${user.name || 'Ananya Sharma'}</b>
+            <small>${user.tier || 'VIP Gold Member'}</small>
+          </div>
+          <a href="${resolvePageLink('orders.html')}">📦 My Orders (#ORD-7820)</a>
+          <a href="${resolvePageLink('cart.html')}">🛒 Shopping Cart (3 items)</a>
+          <a href="${resolvePageLink('browse.html')}">💎 Browse Collection</a>
+          <div class="dropdown-divider"></div>
+          <a href="${resolvePageLink('admin-login.html')}" class="admin-switch-link" style="color:var(--m); font-size:12px;">
+            ⚙ Admin Portal
+          </a>
+          <button type="button" id="header-logout-btn" class="dropdown-logout-btn">
+            🚪 Sign Out
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  function getMobileDrawerHTML(activePage, user) {
+    const isHome = activePage === 'home';
+    const isBrowse = activePage === 'browse' || activePage === 'product';
+    const isOrders = activePage === 'orders';
+    const isCart = activePage === 'cart';
+
+    let authSection = '';
+    if (user) {
+      authSection = `
+        <div class="user-dropdown-header" style="padding:0 0 10px; margin-bottom:8px;">
+          <b>${user.name}</b>
+          <small>${user.role === 'admin' ? 'Administrator' : (user.tier || 'Customer')}</small>
+        </div>
+        ${user.role === 'admin' ? `<a href="${resolvePageLink('admin-dashboard.html')}" style="font-weight:600; color:var(--g);">⚙ Admin Dashboard</a>` : ''}
+        <button type="button" id="mobile-logout-btn" class="dropdown-logout-btn" style="padding:10px 0; border:0; background:transparent; font-size:14px; cursor:pointer; text-align:left;">
+          🚪 Sign Out
+        </button>
+      `;
+    } else {
+      authSection = `
+        <a href="${resolvePageLink('login.html')}" class="btn-header-signin" style="justify-content:center; width:100%;">
+          <span>👤</span> Sign In
+        </a>
+        <a href="${resolvePageLink('admin-login.html')}" style="font-size:12px; color:var(--m); text-align:center; padding:6px 0;">
+          Administrator Sign In →
+        </a>
+      `;
+    }
+
+    return `
+      <div class="mobile-nav-backdrop" id="mobile-nav-backdrop"></div>
+      <div class="mobile-nav-drawer" id="mobile-nav-drawer">
+        <div class="mobile-drawer-header">
+          <a href="${getStorefrontHomeHref()}" class="store-brand" style="margin:0;">
+            <div class="brand-icon" style="width:30px; height:30px; font-size:15px;">◆</div>
+            <div class="brand-name" style="font-size:15px;">
+              Akshar Marbles
+            </div>
+          </a>
+          <button type="button" class="mobile-drawer-close" id="mobile-drawer-close" aria-label="Close menu">✕</button>
+        </div>
+        <div class="mobile-drawer-links">
+          <a href="${getStorefrontHomeHref()}" class="${isHome ? 'active' : ''}">🏠 Home</a>
+          <a href="${resolvePageLink('browse.html')}" class="${isBrowse ? 'active' : ''}">💎 Browse Collection</a>
+          <a href="${resolvePageLink('orders.html')}" class="${isOrders ? 'active' : ''}">📦 Track Orders</a>
+          <a href="${resolvePageLink('cart.html')}" class="${isCart ? 'active' : ''}">🛒 Shopping Cart (3)</a>
+        </div>
+        <div class="mobile-drawer-auth">
+          ${authSection}
+        </div>
+      </div>
+    `;
+  }
+
+  function initNavbar() {
+    const activePage = detectCurrentPage();
+    const user = getAuthUser();
+    const header = document.querySelector('.store-header');
+
+    if (!header) return;
+
+    // 1. Update navigation links active state
+    const navLinks = header.querySelectorAll('.store-nav a');
+    navLinks.forEach((link) => {
+      const href = (link.getAttribute('href') || '').toLowerCase();
+      link.classList.remove('active');
+      const isHomeLink = href === '/' || href.includes('index.html');
+      if (
+        (activePage === 'home' && isHomeLink) ||
+        ((activePage === 'browse' || activePage === 'product') && href.includes('browse.html')) ||
+        (activePage === 'orders' && href.includes('orders.html'))
+      ) {
+        link.classList.add('active');
+      }
+    });
+
+    // 2. Update Cart icon button active state
+    const cartBtn = header.querySelector('.cart-btn-round');
+    if (cartBtn) {
+      if (activePage === 'cart') {
+        cartBtn.classList.add('active');
+      } else {
+        cartBtn.classList.remove('active');
+      }
+    }
+
+    // 3. Update auth actions in header
+    const actionsContainer = header.querySelector('.store-header-actions');
+    if (actionsContainer) {
+      // Find and replace the existing sign in button or user profile button
+      const existingAuth = actionsContainer.querySelector('.btn-header-signin, .user-profile-btn, .user-menu-wrapper, .btn-admin-portal-link');
+      if (existingAuth) {
+        // Remove existing auth elements (if any were duplicated)
+        actionsContainer.querySelectorAll('.btn-header-signin, .user-profile-btn, .user-menu-wrapper, .btn-admin-portal-link').forEach(el => el.remove());
+      }
+
+      // Append the dynamic auth element
+      const authWrap = document.createElement('div');
+      authWrap.style.display = 'inline-flex';
+      authWrap.style.alignItems = 'center';
+      authWrap.style.gap = '10px';
+      authWrap.innerHTML = renderAuthAction(user);
+      actionsContainer.appendChild(authWrap);
+
+      // Add mobile hamburger toggle if not present
+      if (!actionsContainer.querySelector('.mobile-nav-toggle')) {
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'mobile-nav-toggle';
+        toggleBtn.id = 'mobile-nav-toggle';
+        toggleBtn.setAttribute('aria-label', 'Toggle mobile navigation');
+        toggleBtn.innerHTML = '<span></span><span></span><span></span>';
+        actionsContainer.appendChild(toggleBtn);
+      }
+    }
+
+    // 4. Inject mobile drawer into document body if not present
+    let mobileDrawer = document.getElementById('mobile-nav-drawer');
+    if (!mobileDrawer) {
+      const drawerContainer = document.createElement('div');
+      drawerContainer.innerHTML = getMobileDrawerHTML(activePage, user);
+      document.body.appendChild(drawerContainer);
+    }
+
+    // 5. Setup Event Listeners
+    setupEvents();
+  }
+
+  function setupEvents() {
+    // Desktop user dropdown toggle
+    const userToggle = document.getElementById('user-menu-toggle');
+    const userMenuWrapper = document.getElementById('store-user-menu');
+
+    if (userToggle && userMenuWrapper) {
+      userToggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        const isOpen = userMenuWrapper.classList.toggle('open');
+        userToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+    }
+
+    // Close user dropdown on click outside
+    document.addEventListener('click', function (e) {
+      if (userMenuWrapper && !userMenuWrapper.contains(e.target)) {
+        userMenuWrapper.classList.remove('open');
+        if (userToggle) userToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Logout handling
+    const logoutBtn = document.getElementById('header-logout-btn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (window.AksharAuth) {
+          window.AksharAuth.logout(getStorefrontHomeHref());
+        } else {
+          localStorage.removeItem('akshar_auth_user');
+          window.location.href = getStorefrontHomeHref();
+        }
+      });
+    }
+
+    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+    if (mobileLogoutBtn) {
+      mobileLogoutBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (window.AksharAuth) {
+          window.AksharAuth.logout(getStorefrontHomeHref());
+        } else {
+          localStorage.removeItem('akshar_auth_user');
+          window.location.href = getStorefrontHomeHref();
+        }
+      });
+    }
+
+    // Mobile drawer toggle
+    const mobileToggle = document.getElementById('mobile-nav-toggle');
+    const drawer = document.getElementById('mobile-nav-drawer');
+    const backdrop = document.getElementById('mobile-nav-backdrop');
+    const closeBtn = document.getElementById('mobile-drawer-close');
+
+    function openMobileMenu() {
+      if (drawer && backdrop && mobileToggle) {
+        drawer.classList.add('open');
+        backdrop.classList.add('open');
+        mobileToggle.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeMobileMenu() {
+      if (drawer && backdrop && mobileToggle) {
+        drawer.classList.remove('open');
+        backdrop.classList.remove('open');
+        mobileToggle.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+    }
+
+    if (mobileToggle) {
+      mobileToggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (drawer && drawer.classList.contains('open')) {
+          closeMobileMenu();
+        } else {
+          openMobileMenu();
+        }
+      });
+    }
+
+    if (closeBtn) closeBtn.addEventListener('click', closeMobileMenu);
+    if (backdrop) backdrop.addEventListener('click', closeMobileMenu);
+
+    // Close menus on Escape key
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        if (userMenuWrapper) {
+          userMenuWrapper.classList.remove('open');
+          if (userToggle) userToggle.setAttribute('aria-expanded', 'false');
+        }
+        closeMobileMenu();
+      }
+    });
+  }
+
+  // Auto-init on DOM ready
+  async function start() {
+    await loadNavbar();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+
+  // Re-run if auth state changes
+  window.addEventListener('akshar:auth-change', initNavbar);
+})();
